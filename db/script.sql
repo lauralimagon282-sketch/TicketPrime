@@ -16,6 +16,12 @@ IF OBJECT_ID('Cupons', 'U') IS NOT NULL DROP TABLE Cupons;
 IF OBJECT_ID('Usuarios', 'U') IS NOT NULL DROP TABLE Usuarios;
 GO
 
+-- 2. Limpar tabelas antigas (NA ORDEM CORRETA por causa das chaves estrangeiras)
+IF OBJECT_ID('Reservas', 'U') IS NOT NULL DROP TABLE Reservas; -- Adicione esta linha primeiro!
+IF OBJECT_ID('Eventos', 'U') IS NOT NULL DROP TABLE Eventos;
+IF OBJECT_ID('Cupons', 'U') IS NOT NULL DROP TABLE Cupons;
+IF OBJECT_ID('Usuarios', 'U') IS NOT NULL DROP TABLE Usuarios;
+GO
 -- 3. Criar Tabela de Usuários (Admin, Vendedor e Cliente)
 CREATE TABLE Usuarios (
     Id INT PRIMARY KEY IDENTITY,
@@ -44,6 +50,15 @@ CREATE TABLE Eventos (
     Quantidade INT NOT NULL DEFAULT 1, -- ADICIONE ESTA LINHA AQUI
     ImagemURL VARCHAR(MAX),
     VendedorId INT FOREIGN KEY REFERENCES Usuarios(Id)
+);
+-- 7. Criar Tabela de Reservas (OBRIGATÓRIA PARA AV1)
+CREATE TABLE Reservas (
+    Id INT PRIMARY KEY IDENTITY,
+    UsuarioId INT NOT NULL FOREIGN KEY REFERENCES Usuarios(Id),
+    EventoId INT NOT NULL FOREIGN KEY REFERENCES Eventos(Id),
+    DataReserva DATETIME DEFAULT GETDATE(),
+    QuantidadeReservada INT NOT NULL,
+    ValorTotal DECIMAL(10,2) NOT NULL
 );
 GO
 
