@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel Administrativo - TicketPrime</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+        .admin-container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .secao { margin-bottom: 40px; padding: 20px; border: 1px solid #ddd; border-radius: 10px; }
+        .btn-excluir { background: #ff4d6d; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-right: 10px; }
+        .btn-criar { background: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <h1>🛡️ Painel de Controle (Admin)</h1>
+        <button onclick="logout()" style="margin-bottom: 20px;">Sair</button>
+
+        <div class="secao">
+            <h2>🎟️ Gerenciar Cupons</h2>
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <input type="text" id="cupomNome" placeholder="Ex: CODIGO10">
+                <input type="number" id="cupomDesconto" placeholder="% Desconto (Ex: 15)">
+                <button class="btn-criar" onclick="criarCupom()">Criar Cupom</button>
+            </div>
+            
+            <div id="lista-cupons">
+                </div>
+        </div>
+
+       <div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">🛡️ Moderação de Eventos</h5>
+        <table class="table">
+           <thead>
+    <tr>
+        <th>Imagem</th>
+        <th>Evento</th>
+        <th>Local</th>
+        <th>Data e Horário</th>
+        <th>Preço</th>
+        <th>Qtd.</th>
+        <th>Vendedor (ID)</th>
+        <th>Ação</th>
+    </tr>
+</thead>
+<tbody id="tabela-eventos">
+    </tbody>
+        </table>
+    </div>
+</div>
+
+    <script>
+        // 1. Verificação de Segurança
+        const user = JSON.parse(localStorage.getItem('usuario'));
+        if (!user || user.nivelAcesso !== 1) {
+            window.location.href = 'index.html';
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // 2. Funções de Cupons
+        async function carregarCupons() {
+            try {
+                const res = await fetch('/api/cupons');
+                const cupons = await res.json();
+                const div = document.getElementById('lista-cupons');
+
+                if (cupons.length === 0) {
+                    div.innerHTML = "<p style='color: #999;'>Nenhum cupom ativo.</p>";
+                    return;
+                }
+
+                div.innerHTML = `
+                    <table>
+                        <tr style="background: #eee;">
+                            <th>Código</th>
+                            <th>Desconto</th>
+                            <th>Ação</th>
+                        </tr>
+                        ${cupons.map(c => `
+                            <tr>
+                                <td><strong>${c.codigo}</strong></td>
+                                <td>${c.porcentagemDesconto}%</td>
+                                <td><button class="btn-excluir" onclick="excluirCupom(${c.id})">Remover</button></td>
+                            </tr>
+                        `).join('')}
+                    </table>`;
+            } catch (err) { console.error("Erro ao carregar cupons:", err); }
+        }
+
+        async function criarCupom() {
+            const inputNome = document.getElementById('cupomNome');
+            const inputDesc = document.getElementById('cupomDesconto');
+
+            const codigo = inputNome.value.trim();
+            const desconto = parseFloat(inputDesc.value);
+
+            if (!codigo || isNaN(desconto) || desconto <= 0) {
+                Swal.fire('Atenção', 'Informe um código e um desconto maior que zero!', 'warning');
+                return;
+            }
+
+            const novoCupom = {
+                Codigo: codigo.toUpperCase(),
+                PorcentagemDesconto: desconto,
+                ValorMinimo: 0
+            };
+
+            const res = await fetch('/api/cupons', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(novoCupom)
+            });
+
+            if (res.ok) {
+                Swal.fire('Sucesso!', 'Cupom criado com sucesso!', 'success');
+                inputNome.value = '';
+                inputDesc.value = '';
+                carregarCupons();
+            } else {
+                Swal.fire('Erro', 'Falha ao salvar no banco.', 'error');
+            }
+        }
+
+        async function excluirCupom(id) {
+    // 1. Abre a mensagem personalizada de confirmação
+    const resultado = await Swal.fire({
+        title: 'Tem certeza?',
+        text: "Você não poderá reverter esta exclusão!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff4d6d', // Cor vermelha para exclusão
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sim, excluir!',
+        cancelButtonText: 'Cancelar'
+    });
+
+    // 2. Se o usuário confirmar, faz a exclusão
+    if (resultado.isConfirmed) {
+        try {
+            const res = await fetch(`/api/cupons/${id}`, { method: 'DELETE' });
+            
+            if (res.ok) {
+                // Mensagem de sucesso personalizada
+                await Swal.fire(
+                    'Excluído!',
+                    'O cupom foi removido com sucesso.',
+                    'success'
+                );
+                carregarCupons(); // Atualiza a lista na tela
+            } else {
+                Swal.fire('Erro', 'Não foi possível excluir o cupom.', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Erro', 'Falha na conexão com o servidor.', 'error');
+        }
+    }
+}
+
+        // 3. Funções de Eventos
+   async function carregarEventosAdmin() {
+    try {
+        const res = await fetch('/api/eventos');
+        const eventos = await res.json();
+        
+        const corpoTabela = document.getElementById('tabela-eventos');
+        corpoTabela.innerHTML = "";
+
+        eventos.forEach(ev => {
+            // 1. Formata a Data e o Horário (que você queria)
+            const dataHora = new Date(ev.data).toLocaleString('pt-BR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            
+            // 2. Preenche a tabela na ordem correta das novas colunas
+            corpoTabela.innerHTML += `
+                <tr>
+                    <td>
+                        <img src="${ev.imagemURL}" alt="Show" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+                    </td>
+                    <td><strong>${ev.nome}</strong></td>
+                    <td>${ev.local}</td>
+                    <td>${dataHora}</td>
+                    <td>R$ ${ev.preco.toFixed(2)}</td>
+                    <td>${ev.quantidade}</td>
+                    <td>${ev.vendedorId}</td>
+                    <td>
+                        <button class="btn-remover" style="background-color: #ff5e78; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;" onclick="removerShow(${ev.id})">
+    Remover
+</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        console.error("Erro ao carregar eventos:", err);
+    }
+}
+
+// 3. Função para o botão de remover funcionar (rota do Program.cs)
+async function removerShow(id) {
+    // Aviso personalizado igual ao resto do site
+    Swal.fire({
+        title: 'Tem certeza?',
+        text: "O evento será excluído permanentemente!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff5e78', // Rosa do seu botão
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sim, remover!',
+        cancelButtonText: 'Cancelar'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`/api/eventos/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    Swal.fire('Removido!', 'Evento excluído.', 'success');
+                    carregarEventosAdmin(); 
+                } else {
+                    Swal.fire('Erro!', 'Não foi possível remover.', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Erro!', 'Falha na conexão.', 'error');
+            }
+        }
+    });
+}
+
+// Chame a função quando a página carregar
+window.onload = () => {
+    carregarEventosAdmin();
+    carregarCupons(); // Se você tiver essa função para a outra tabela
+};
+    </script>
+</body>
+</html>

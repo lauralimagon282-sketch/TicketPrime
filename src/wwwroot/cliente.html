@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>TicketPrime - Sua Próxima Experiência</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* CSS Otimizado - MANTIDO EXATAMENTE IGUAL */
+        body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; margin: 0; }
+        
+        .navbar { 
+            background: #0f0c29; padding: 15px 50px; 
+            display: flex; justify-content: space-between; align-items: center;
+            color: white; position: sticky; top: 0; z-index: 100;
+        }
+
+        .btn-nav { background: none; border: 1px solid #ffffff33; color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; margin-left: 10px; }
+        .btn-nav:hover { background: #ff4d6d; border-color: #ff4d6d; }
+
+        .hero-cliente { 
+            background: linear-gradient(rgba(15, 12, 41, 0.8), rgba(15, 12, 41, 0.8)), url('https://images.unsplash.com/photo-1459749411177-042180ce673c?auto=format&fit=crop&w=1350&q=80');
+            background-size: cover; background-position: center;
+            color: white; padding: 80px 20px; text-align: center;
+        }
+
+        .dashboard-container { padding: 40px; max-width: 1200px; margin: 0 auto; }
+        .eventos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
+
+        .card-evento { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: 0.3s; border: 1px solid #eee; }
+        .card-evento:hover { transform: translateY(-8px); }
+        .card-img { width: 100%; height: 180px; object-fit: cover; }
+        .card-corpo { padding: 20px; }
+        .tag-categoria { background: #ffe5ec; color: #ff4d6d; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .preco { font-size: 20px; font-weight: bold; color: #28a745; }
+        .btn-comprar { background: #0f0c29; color: white; padding: 10px 25px; border-radius: 8px; text-decoration: none; font-weight: bold; border:none; cursor:pointer; }
+        
+        .btn-metodo {
+            background: #f1f2f6;
+            border: 1px solid #dfe4ea;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #2d3436;
+            transition: 0.2s;
+        }
+        .btn-metodo.ativo { background: #2d2a4e !important; color: white !important; }
+        .btn-metodo:hover { background: #2d2a4e; color: white; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div style="font-size: 22px; font-weight: bold;">TicketPrime</div>
+        <div>
+            <button class="btn-nav" onclick="abrirPerfil()">👤 Meu Perfil</button>
+            <button class="btn-nav" onclick="abrirModalMeusIngressos()">🎟️ Meus Ingressos</button>
+            <button class="btn-nav" onclick="logout()" style="border-color: #ff4d6d; color: #ff4d6d;">Sair</button>
+        </div>
+    </nav>
+
+    <header class="hero-cliente">
+        <h1 id="boasVindas">Olá, explorador!</h1>
+        <p>Os melhores shows do Brasil em um só lugar.</p>
+    </header>
+
+    <div class="dashboard-container">
+        <h2 style="color: #0f0c29; margin-bottom: 30px;">🔥 Shows em Destaque</h2>
+        <div id="eventos-grid" class="eventos-grid">
+            </div>
+    </div>
+
+    <div id="modalPagamento" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:999; justify-content:center; align-items:center;">
+        <div class="modal-content" style="background:white; padding:25px; border-radius:15px; width:90%; max-width:500px; position:relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            
+            <span onclick="fecharPagamento()" style="position:absolute; top:15px; right:20px; cursor:pointer; font-size:24px; color:#666; z-index: 1000; padding: 5px;">&times;</span>
+            
+            <h2 style="margin-bottom:20px;">Finalizar Compra</h2>
+
+            <div id="detalhes-show-pagamento" style="margin-bottom:20px; padding:15px; background:#f8f9fa; border-radius:10px; border:1px solid #eee;">
+            </div>
+
+            <div class="pagamento-metodos" style="display:flex; gap:10px; margin-bottom:20px;">
+                <button type="button" onclick="mudarMetodo('pix')" class="btn-metodo" style="flex:1; padding:10px; cursor:pointer; border-radius:8px; border:1px solid #ddd; background:#fff;">Pix</button>
+                <button type="button" onclick="mudarMetodo('cartao')" class="btn-metodo" style="flex:1; padding:10px; cursor:pointer; border-radius:8px; border:1px solid #ddd; background:#fff;">Cartão</button>
+                <button type="button" onclick="mudarMetodo('boleto')" class="btn-metodo" style="flex:1; padding:10px; cursor:pointer; border-radius:8px; border:1px solid #ddd; background:#fff;">Boleto</button>
+            </div>
+
+            <div id="area-metodo" style="min-height: 150px; margin-bottom: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+                <p style="color:#888; text-align:center;">Selecione um método de pagamento acima.</p>
+            </div>
+
+            <div id="sessao-cupom" style="margin: 15px 0; padding: 15px; background: #f1f2f6; border-radius: 10px; border: 1px solid #dcdde1;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="input-cupom" placeholder="TEM UM CUPOM?" 
+                           style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; text-transform: uppercase; font-size: 13px;">
+                    <button type="button" onclick="aplicarCupom()" 
+                            style="padding: 10px 15px; background: #2d2a4e; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px;">
+                        Aplicar
+                    </button>
+                </div>
+                <p id="msg-cupom" style="font-size: 12px; margin-top: 8px; display: none; font-weight: bold;"></p>
+            </div>
+
+            <button onclick="confirmarPagamento()" style="width:100%; padding:15px; background:#00b894; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:16px; transition: 0.3s; margin-top:10px;">
+                CONFIRMAR PAGAMENTO
+            </button>
+            
+        </div>
+    </div>
+
+    <script>
+        let descontoAtivo = 0; 
+        
+        // CORREÇÃO GERAL: Centralizamos como buscamos o usuário
+        const getUsuarioLogado = () => JSON.parse(localStorage.getItem('usuario'));
+
+        const user = getUsuarioLogado();
+        if (!user) window.location.href = 'index.html';
+
+        document.getElementById('boasVindas').innerText = `Olá, ${user.nome.split(' ')[0]}! 👋`;
+
+        // ================= FUNÇÕES DO HEADER =================
+        function abrirPerfil() {
+            const usuario = getUsuarioLogado();
+            if (!usuario) return;
+
+            Swal.fire({
+                title: 'Meu Perfil',
+                html: `
+                    <div style="text-align: left; padding: 10px;">
+                        <p><strong>Nome:</strong> ${usuario.nome || usuario.Nome}</p>
+                        <p><strong>E-mail:</strong> ${usuario.email || usuario.Email}</p>
+                        <p><strong>Tipo de Conta:</strong> Cliente</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonColor: '#2d2a4e'
+            });
+        }
+
+        // CORREÇÃO: Função Meus Ingressos
+        function abrirModalMeusIngressos() {
+            const todosOsIngressos = JSON.parse(localStorage.getItem('meus_ingressos')) || [];
+            
+            // Aqui estava o erro! Trocado para buscar exatamente a chave que você usa no login ('usuario')
+            const usuarioCorreto = getUsuarioLogado();
+
+            if (!usuarioCorreto) {
+                Swal.fire('Erro', 'Sua sessão expirou.', 'error');
+                return;
+            }
+
+            const emailDoUsuario = usuarioCorreto.email || usuarioCorreto.Email;
+
+            // Filtro perfeito baseado no email correto
+            const compras = todosOsIngressos.filter(ing => ing.usuarioEmail === emailDoUsuario);
+
+            if (compras.length === 0) {
+                Swal.fire({
+                    title: 'Meus Ingressos',
+                    text: 'Você ainda não possui ingressos nesta conta.',
+                    icon: 'info',
+                    confirmButtonColor: '#2d2a4e'
+                });
+                return;
+            }
+
+            let listaHTML = `
+                <div style="max-height: 400px; overflow-y: auto; padding: 5px;">
+                    ${compras.map(ing => `
+                        <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px; background: #ffffff; border-radius: 12px; text-align: left; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                            <div style="flex: 1;">
+                                <strong style="font-size: 16px; color: #2d2a4e; display: block; margin-bottom: 4px;">${ing.nome}</strong>
+                                <div style="font-size: 12px; color: #666; line-height: 1.6;">
+                                    <span>📅 Data Compra: ${ing.dataCompra}</span><br>
+                                    <span>${ing.local}</span><br>
+                                    <span>${ing.horario}</span>
+                                </div>
+                                <div style="margin-top: 8px;">
+                                    <span style="background: #e6faf5; color: #00b894; padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: bold;">✔ Confirmado</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            Swal.fire({
+                title: 'Seus Ingressos 🎟️',
+                html: listaHTML,
+                confirmButtonText: 'Fechar',
+                confirmButtonColor: '#2d2a4e',
+                width: '480px'
+            });
+        }
+
+        function logout() {
+            Swal.fire({
+                title: 'Sair',
+                text: "Deseja realmente encerrar sua sessão?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d63031',
+                cancelButtonColor: '#aaa',
+                confirmButtonText: 'Sim, sair!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('usuario'); // Limpa apenas o usuário para não quebrar a loja
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+
+        // ================= FUNÇÕES DA LOJA E COMPRA =================
+        async function carregarShows() {
+            try {
+                const res = await fetch('/api/eventos');
+                const eventos = await res.json();
+                const container = document.getElementById('eventos-grid'); 
+                container.innerHTML = "";
+
+                eventos.forEach(ev => {
+                    const dataFormatada = new Date(ev.data || ev.Data).toLocaleString('pt-BR', { 
+                        dateStyle: 'short', timeStyle: 'short' 
+                    });
+
+                    container.innerHTML += `
+                        <div class="card-evento">
+                            <img src="${ev.imagemURL || ev.ImagemURL || 'https://via.placeholder.com/500'}" class="card-img" onerror="this.src='https://images.unsplash.com/photo-1459749411177-042180ce673c?auto=format&fit=crop&w=500&q=80'">
+                            <div class="card-corpo">
+                                <span class="tag-categoria">Música</span>
+                                <h3 style="margin: 10px 0;">${ev.nome || ev.Nome}</h3>
+                                <p style="color:#666; font-size:14px; line-height: 1.5;">
+                                    📍 ${ev.local || ev.Local}<br>
+                                    📅 ${dataFormatada}<br>
+                                    🎫 Ingressos: ${ev.quantidade || ev.Quantidade || 0}
+                                </p>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
+                                    <span class="preco">R$ ${Number(ev.preco || ev.Preco).toFixed(2)}</span>
+                                    <button onclick="comprar(event)" class="btn-comprar">Comprar</button>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            } catch (err) { 
+                console.error("Erro ao carregar vitrine:", err); 
+            }
+        }
+
+        function comprar(event) {
+            try {
+                const modal = document.getElementById('modalPagamento');
+                if (modal) modal.style.display = 'flex';
+
+                const card = event.target.closest('.card-evento');
+                const nomeShow = card.querySelector('h3').innerText;
+                const precoShow = card.querySelector('.preco').innerText;
+
+                document.getElementById('detalhes-show-pagamento').innerHTML = `
+                    <p style="margin:5px 0;"><strong>Evento:</strong> <span id="nome-show-modal">${nomeShow}</span></p>
+                    <p style="margin:5px 0;"><strong>Valor Unitário:</strong> <span id="valor-show-modal">${precoShow}</span></p>
+                `;
+
+                mudarMetodo('pix'); 
+            } catch (err) {
+                console.error("Erro ao abrir modal:", err);
+            }
+        }
+
+        function fecharPagamento() {
+            document.getElementById('modalPagamento').style.display = 'none';
+            descontoAtivo = 0; 
+            const inputCupom = document.getElementById('input-cupom');
+            if (inputCupom) { inputCupom.value = ""; inputCupom.disabled = false; }
+            const msgCupom = document.getElementById('msg-cupom');
+            if (msgCupom) { msgCupom.style.display = "none"; msgCupom.innerText = ""; }
+            const detalhes = document.getElementById('detalhes-show-pagamento');
+            if (detalhes) {
+                const linhaDesconto = detalhes.querySelector('.linha-desconto');
+                if (linhaDesconto) linhaDesconto.remove();
+            }
+        }
+
+        async function aplicarCupom() {
+            const inputCupom = document.getElementById('input-cupom');
+            const msg = document.getElementById('msg-cupom');
+            const areaDetalhes = document.getElementById('detalhes-show-pagamento');
+            
+            if (!inputCupom || !msg || !areaDetalhes) return;
+
+            const nomeCupom = inputCupom.value.trim().toUpperCase();
+            if (!nomeCupom) return;
+
+            try {
+                const response = await fetch(`/api/cupons/${nomeCupom}`);
+                if (!response.ok) throw new Error("Cupom não encontrado");
+
+                const cupomData = await response.json(); 
+                const textoPreco = areaDetalhes.innerText;
+                const match = textoPreco.match(/R\$\s*(\d+(?:[\.,]\d+)?)/);
+                let valorOriginal = match ? parseFloat(match[1].replace(',', '.')) : 0;
+
+                const porcentagem = cupomData.porcentagem; 
+                const descontoCalculado = porcentagem / 100;
+                const novoValor = valorOriginal * (1 - descontoCalculado);
+
+                msg.style.display = "block";
+                msg.innerText = `Cupom ${nomeCupom} aplicado! (${porcentagem}% OFF)`;
+                msg.style.color = "#27ae60";
+                
+                let linhaExistente = areaDetalhes.querySelector('.linha-desconto');
+                if (linhaExistente) linhaExistente.remove();
+                
+                areaDetalhes.innerHTML += `
+                    <p class="linha-desconto" style="color: #27ae60; margin-top: 5px; font-size: 15px; font-weight: bold;">
+                        Total com Desconto: R$ ${novoValor.toFixed(2)}
+                    </p>`;
+                    
+                inputCupom.disabled = true;
+
+            } catch (err) {
+                msg.style.display = "block";
+                msg.innerText = "Cupom inválido ou expirado.";
+                msg.style.color = "#eb4d4b";
+            }
+        }
+
+        function mudarMetodo(tipo) {
+            const area = document.getElementById('area-metodo');
+            const usuarioAtivo = getUsuarioLogado() || { email: 'contato@ticketprime.com' };
+
+            area.innerHTML = "";
+
+            if (tipo === 'pix') {
+                area.innerHTML = `
+                    <div style="text-align:center; animation: fadeIn 0.3s;">
+                        <p style="margin-bottom:10px; color:#666;">Escaneie o QR Code:</p>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TicketPrimePix" style="border-radius:10px;">
+                        <input type="text" value="00020101021226580014br.gov.bcb.pix" readonly 
+                               style="width:100%; padding:8px; text-align:center; border:1px dashed #ccc; margin-top:10px;">
+                    </div>`;
+            } else if (tipo === 'cartao') {
+                area.innerHTML = `
+                    <div style="animation: fadeIn 0.3s;" class="area-cartao">
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <button type="button" id="btn-credito" class="btn-metodo ativo" onclick="selecionarSubMetodo('credito')">Crédito</button>
+                            <button type="button" id="btn-debito" class="btn-metodo" onclick="selecionarSubMetodo('debito')">Débito</button>
+                        </div>
+                        <input type="hidden" id="tipo-cartao" value="credito">
+                        <div id="campos-cartao">
+                            <input type="text" class="input-obrig" placeholder="Número do Cartão" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
+                            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                                <input type="text" class="input-obrig" placeholder="MM/AA" style="width:60%; padding:12px; border:1px solid #ddd; border-radius:5px;">
+                                <input type="text" class="input-obrig" placeholder="CVV" style="width:40%; padding:12px; border:1px solid #ddd; border-radius:5px;">
+                            </div>
+                            <input type="text" class="input-obrig" placeholder="Nome impresso no cartão" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:5px;">
+                            <select id="select-parcelas" style="width:100%; padding:12px; margin-top:10px; border:1px solid #ddd; border-radius:5px;">
+                                <option value="1">1x sem juros</option>
+                                <option value="2">2x sem juros</option>
+                                <option value="3">3x sem juros</option>
+                            </select>
+                        </div>
+                    </div>`;
+            } else if (tipo === 'boleto') {
+                area.innerHTML = `
+                    <div style="text-align:center; animation: fadeIn 0.3s;">
+                        <p style="margin-top:15px;">Boleto enviado para:<br><strong>${usuarioAtivo.email || usuarioAtivo.Email}</strong></p>
+                    </div>`;
+            }
+        }
+
+        function selecionarSubMetodo(metodo) {
+            const btnCredito = document.getElementById('btn-credito');
+            const btnDebito = document.getElementById('btn-debito');
+            const selectParcelas = document.getElementById('select-parcelas');
+            const inputTipo = document.getElementById('tipo-cartao');
+
+            if (metodo === 'credito') {
+                btnCredito.classList.add('ativo');
+                btnDebito.classList.remove('ativo');
+                selectParcelas.style.display = 'block'; 
+                inputTipo.value = 'credito';
+            } else {
+                btnDebito.classList.add('ativo');
+                btnCredito.classList.remove('ativo');
+                selectParcelas.style.display = 'none'; 
+                inputTipo.value = 'debito';
+            }
+        }
+
+        // CORREÇÃO: Função de Pagamento Refeita e Blindada
+        async function confirmarPagamento() {
+            // 1. Pega os dados com segurança
+            const usuarioCompra = getUsuarioLogado();
+            const emailDono = usuarioCompra ? (usuarioCompra.email || usuarioCompra.Email) : "convidado";
+
+            // 2. Validação simples apenas se o método for cartão
+            const areaCartao = document.querySelector('.area-cartao');
+            if (areaCartao) {
+                const inputsObrigatorios = areaCartao.querySelectorAll('.input-obrig');
+                for (let input of inputsObrigatorios) {
+                    if (input.value.trim() === "") {
+                        Swal.fire('Campo Obrigatório', `Preencha todos os dados do cartão.`, 'warning');
+                        return;
+                    }
+                }
+            }
+
+            // 3. Processamento visual
+            Swal.fire({
+                title: 'Processando...',
+                html: 'Estamos validando os dados com sua operadora.',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            setTimeout(() => {
+                try {
+                    // 4. Captura do modal corretamente através dos IDs que criamos
+                    const nomeDoShow = document.getElementById('nome-show-modal').innerText;
+                    const valorFinal = document.getElementById('valor-show-modal').innerText;
+
+                    const novoIngresso = {
+                        nome: nomeDoShow,
+                        valor: valorFinal,
+                        usuarioEmail: emailDono, // Aqui o e-mail é atrelado
+                        dataCompra: new Date().toLocaleDateString('pt-BR'),
+                        local: "📍 Local: Evento TicketPrime", 
+                        horario: "⏰ Horário: A Definir",
+                    };
+
+                    // 5. Salva no Storage
+                    let compras = JSON.parse(localStorage.getItem('meus_ingressos')) || [];
+                    compras.push(novoIngresso);
+                    localStorage.setItem('meus_ingressos', JSON.stringify(compras));
+
+                    Swal.close(); 
+                    
+                    // 6. Confirmação
+                    Swal.fire({
+                        title: 'Pagamento Confirmado!',
+                        text: 'Seu ingresso foi gerado com sucesso.',
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ver Meus Ingressos',
+                        cancelButtonText: 'Continuar Navegando',
+                        confirmButtonColor: '#00b894',
+                        cancelButtonColor: '#2d2a4e',
+                    }).then((result) => {
+                        fecharPagamento();
+                        if (result.isConfirmed) {
+                            abrirModalMeusIngressos();
+                        }
+                    });
+
+                } catch (error) {
+                    console.error("Erro ao processar compra:", error);
+                    Swal.close();
+                    Swal.fire('Erro', 'Houve um problema ao gerar seu ingresso.', 'error');
+                }
+            }, 2000);
+        }
+        
+        window.onload = carregarShows;
+    </script>
+</body>
+</html>
