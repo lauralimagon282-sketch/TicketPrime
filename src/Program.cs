@@ -14,7 +14,7 @@ app.UseStaticFiles();
 
 string connectionString = "Server=localhost\\SQLEXPRESS;Database=TicketPrime;Trusted_Connection=True;TrustServerCertificate=True;";
 
-// --- 1. USUÁRIOS & LOGIN ---
+// USUÁRIOS & LOGIN
 app.MapPost("/api/usuarios", async (Usuario usuario) =>
 {
     if (string.IsNullOrWhiteSpace(usuario.Cpf) || string.IsNullOrWhiteSpace(usuario.Nome))
@@ -39,12 +39,10 @@ app.MapPost("/api/login", async (LoginRequest login) =>
     return Results.BadRequest("E-mail ou senha incorretos.");
 });
 
-// --- 2. EVENTOS (CORRIGIDO PARA INCLUIR O LUGAR NO INSERT) ---
-
+//EVENTOS
 app.MapPost("/api/eventos", async (Evento ev) => {
     using var db = new SqlConnection(connectionString); 
     
-    // CORREÇÃO AQUI: Adicionado 'Lugar' tanto na lista de colunas quanto nos @parâmetros
     var sql = @"INSERT INTO Eventos (Nome, Lugar, CapacidadeTotal, DataEvento, PrecoPadrao, ImagemURL) 
                 VALUES (@Nome, @Lugar, @CapacidadeTotal, @DataEvento, @PrecoPadrao, @ImagemURL)";
     
@@ -65,7 +63,7 @@ app.MapDelete("/api/eventos/{id}", async (int id) => {
     return Results.Ok("Evento removido!");
 });
 
-// --- 3. CUPONS ---
+//CUPONS
 app.MapPost("/api/cupons", async (Cupom cp) => {
     using var db = new SqlConnection(connectionString);
     var sql = @"INSERT INTO Cupons (codigo, PorcentagemDesconto, valorMinimoregra) 
@@ -78,10 +76,8 @@ app.MapGet("/api/cupons", async () => {
     using var db = new SqlConnection(connectionString);
     return Results.Ok(await db.QueryAsync<Cupom>("SELECT * FROM Cupons"));
 });
-// NOVA ROTA: Necessária para o botão "Aplicar Cupom" do cliente funcionar
 app.MapGet("/api/cupons/{codigo}", async (string codigo) => {
     using var db = new SqlConnection(connectionString);
-    // Busca o cupom pelo código exato
     var sql = "SELECT * FROM Cupons WHERE UPPER(codigo) = UPPER(@codigo)";
     var cupom = await db.QueryFirstOrDefaultAsync<Cupom>(sql, new { codigo });
     
@@ -95,7 +91,7 @@ app.MapDelete("/api/cupons/{codigo}", async (string codigo) => {
     return Results.Ok("Cupom removido!");
 });
 
-// --- 4. RESERVAS ---
+//RESERVAS
 app.MapPost("/api/reservas", async (Reserva res) => {
     using var db = new SqlConnection(connectionString);
     var sql = @"INSERT INTO Reservas (UsuarioCpf, EventoId, ValorFinalPago) 
@@ -109,9 +105,6 @@ app.Run();
 // --- MODELS ---
 public record Usuario(string Cpf, string Nome, string Email, string Senha, int NivelAcesso);
 public record LoginRequest(string Email, string Senha);
-
-// O record Evento já estava certo, mas o SQL acima não usava o campo 'Lugar'
 public record Evento(int? Id, string Nome, string Lugar, int CapacidadeTotal, DateTime DataEvento, decimal PrecoPadrao, string ImagemURL);
-
 public record Cupom(string codigo, decimal PorcentagemDesconto, decimal valorMinimoregra);
 public record Reserva(string UsuarioCpf, int EventoId, decimal ValorFinalPago);
