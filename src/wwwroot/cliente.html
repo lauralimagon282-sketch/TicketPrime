@@ -316,7 +316,7 @@ async function aplicarCupom() {
         const valorComDesconto = valorBase * (1 - desconto);
 
         // 3. Exibimos formatado corretamente (R$ 160,00)
-        valorModal.innerText = `R$ ${valorComDesconto.toFixed(2).replace('.', ',')}`;
+        valorModal.innerText = `R$ ${valorComDesconto.toFixed(2).replace('.', ',')}` ;
         
         // Feedback visual para o cliente
         msg.innerText = `Cupom ${codigo} aplicado! (${porcentagem}% OFF)`;
