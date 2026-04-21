@@ -182,8 +182,7 @@
 </div>
 
 <script>
-    //Verificação de Segurança e Boas-vindas
-// 1. Verificação de Segurança e Localhost (Padronizado com index.html)
+
 const usuario = JSON.parse(localStorage.getItem('usuarioLogado'));
 
 if (!usuario || usuario.NivelAcesso !== 2) {
@@ -208,21 +207,19 @@ document.getElementById('ev-arquivo').addEventListener('change', function(e) {
 
 async function salvarEvento() {
     const nome = document.getElementById('nome-evento').value.trim();
-    // CAPTURANDO O LUGAR AQUI
     const lugar = document.getElementById('lugar-evento').value.trim(); 
     const preco = parseFloat(document.getElementById('preco-evento').value);
     const qtd = parseInt(document.getElementById('qtd-ingressos').value); 
     const data = document.getElementById('data-evento').value;
     const imagemBase64 = document.getElementById('ev-imagem-base64').value;
 
-    // VALIDAÇÃO RIGOROSA: Não deixa passar nada vazio
     if (!nome || !lugar || isNaN(preco) || isNaN(qtd) || !data || !imagemBase64) {
         return Swal.fire('Atenção', 'Preencha TODOS os campos, incluindo o local!', 'warning');
     }
 
     const payload = {
         Nome: nome,
-        Lugar: lugar,            // Novo campo adicionado
+        Lugar: lugar,            
         CapacidadeTotal: qtd,
         PrecoPadrao: preco,
         DataEvento: data,
