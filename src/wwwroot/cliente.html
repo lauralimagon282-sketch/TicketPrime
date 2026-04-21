@@ -5,7 +5,6 @@
     <title>TicketPrime - Sua Próxima Experiência</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        /* CSS Otimizado - MANTIDO EXATAMENTE IGUAL */
         body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; margin: 0; }
         
         .navbar { 
@@ -118,19 +117,18 @@
         // ================= CONFIGURAÇÃO INICIAL =================
 let descontoAtivo = 0;
 
-// Centralizamos a busca do usuário para evitar erros de "null"
 const getUsuarioLogado = () => JSON.parse(localStorage.getItem('usuarioLogado'));
 
 const user = getUsuarioLogado();
 if (!user) {
     window.location.href = 'index.html';
 } else {
-    // Exibe o primeiro nome do usuário no topo
+    //Exibe o primeiro nome do usuário no topo
     const nomeExibicao = user.Nome || user.nome || "Explorador";
     document.getElementById('boasVindas').innerText = `Olá, ${nomeExibicao.split(' ')[0]}! 👋`;
 }
 
-// Carregar shows ao abrir a página
+//Carregar shows ao abrir a página
 window.onload = carregarShows;
 
 // ================= FUNÇÕES DO HEADER =================
@@ -154,7 +152,6 @@ function abrirPerfil() {
 }
 
 function abrirModalMeusIngressos() {
-    // Busca os ingressos salvos no LocalStorage (simulando histórico)
     const todosOsIngressos = JSON.parse(localStorage.getItem('meus_ingressos')) || [];
     const usuarioCorreto = getUsuarioLogado();
 
@@ -164,7 +161,6 @@ function abrirModalMeusIngressos() {
     }
 
     const cpfUsuario = usuarioCorreto.Cpf || usuarioCorreto.cpf;
-    // Filtra ingressos que pertencem a este CPF
     const compras = todosOsIngressos.filter(ing => ing.usuarioCpf === cpfUsuario);
 
     if (compras.length === 0) {
@@ -255,7 +251,7 @@ async function carregarShows() {
     }
 }
 
-// Função para abrir o modal de pagamento com os dados do show
+//Função para abrir o modal de pagamento com os dados do show
 let eventoSelecionadoId = null;
 
 function prepararCompra(event, id) {
@@ -279,7 +275,6 @@ function fecharPagamento() {
     descontoAtivo = 0; 
 }
 
-// CORREÇÃO DO CUPOM: Busca a porcentagem correta da sua API
 let cupomAplicado = false; 
 
 async function aplicarCupom() {
@@ -300,30 +295,25 @@ async function aplicarCupom() {
         const cupom = await res.json();
         const porcentagem = cupom.porcentagemDesconto || cupom.PorcentagemDesconto;
         
-        // --- AQUI ESTÁ O SEGREDO PARA NÃO DAR 16 MIL ---
         
-        // 1. Pegamos apenas o que é número e ponto/vírgula do texto "R$ 200.00"
         let textoPreco = valorModal.innerText.replace(/[^\d,.]/g, '').trim();
         
-        // 2. Garantimos que o JavaScript entenda como número decimal real
-        // Se o valor for "200.00", ele vira 200. Se for "200,00", ele vira 200.
         let valorBase = parseFloat(textoPreco.replace(',', '.'));
 
-        // Validação extra: se o valorBase for NaN ou estranho, resetamos para o padrão
+        //Validação extra
         if (isNaN(valorBase)) valorBase = 200; 
 
         const desconto = porcentagem / 100;
         const valorComDesconto = valorBase * (1 - desconto);
 
-        // 3. Exibimos formatado corretamente (R$ 160,00)
         valorModal.innerText = `R$ ${valorComDesconto.toFixed(2).replace('.', ',')}` ;
         
-        // Feedback visual para o cliente
+        //Feedback visual para o cliente
         msg.innerText = `Cupom ${codigo} aplicado! (${porcentagem}% OFF)`;
         msg.style.color = "#00b894";
         msg.style.display = "block";
 
-        // Travas de segurança
+        //Travas de segurança
         cupomAplicado = true;
         input.disabled = true;
         const btn = document.querySelector("button[onclick='aplicarCupom()']");
@@ -336,7 +326,6 @@ async function aplicarCupom() {
     }
 }
 
-// CORREÇÃO DOS BOTÕES: Faz o conteúdo aparecer ao clicar
 function mudarMetodo(tipo) {
     const area = document.getElementById('area-metodo');
     
@@ -383,11 +372,11 @@ async function confirmarPagamento() {
         ValorFinalPago: valorFinal
     };
 
-    // Exibe loading
+    //Exibe loading
     Swal.fire({ title: 'Processando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
 
     try {
-        // 1. SALVA NO BANCO (C#)
+        //SALVA NO BANCO (C#)
         const res = await fetch('/api/reservas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -395,7 +384,7 @@ async function confirmarPagamento() {
         });
 
         if (res.ok) {
-            // 2. SALVA NO LOCALSTORAGE (Para aparecer em "Meus Ingressos" na hora)
+            //SALVA NO LOCALSTORAGE (Para aparecer em "Meus Ingressos" na hora)
             const novoIngresso = {
                 nome: nomeShow,
                 valor: valorTexto,
