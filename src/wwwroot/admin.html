@@ -54,10 +54,8 @@
 </div>
 
     <script>
-        //Verificação de Segurança
-        // 1. Verificação de Segurança e Localhost
-// Mudamos para 'usuarioLogado' para bater com o que fizemos no index.html
-// 1. Verificação de Acesso
+        
+//Verificação de Acesso
 const user = JSON.parse(localStorage.getItem('usuarioLogado'));
 
 if (!user || user.NivelAcesso !== 1) {
@@ -69,7 +67,7 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-// 2. Funções de Cupons
+//Funções de Cupons
 async function carregarCupons() {
     try {
         const res = await fetch('/api/cupons');
@@ -99,7 +97,6 @@ async function carregarCupons() {
     } catch (err) { console.error("Erro ao carregar cupons:", err); }
 }
 
-// ESTA FUNÇÃO ESTAVA FALTANDO:
 async function excluirCupom(codigo) {
     const result = await Swal.fire({
         title: 'Excluir Cupom?',
@@ -159,7 +156,7 @@ async function criarCupom() {
     }
 }
 
-// 3. Funções de Eventos
+//Funções de Eventos
 async function carregarEventosAdmin() {
     try {
         const res = await fetch('/api/eventos');
@@ -169,7 +166,6 @@ async function carregarEventosAdmin() {
         corpoTabela.innerHTML = "";
 
         eventos.forEach(ev => {
-            // Criamos a variável com o nome correto
             const dataHora = new Date(ev.dataEvento || ev.DataEvento).toLocaleString('pt-BR');
 
             corpoTabela.innerHTML += `
