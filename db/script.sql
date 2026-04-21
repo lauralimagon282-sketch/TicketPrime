@@ -1,23 +1,23 @@
 USE TicketPrime;
 GO
 
--- 1. APAGAR NA ORDEM CORRETA (Primeiro as que têm FK, depois as que são apontadas)
+--APAGAR NA ORDEM CORRETA
 IF OBJECT_ID('Reservas', 'U') IS NOT NULL DROP TABLE Reservas;
 IF OBJECT_ID('Eventos', 'U') IS NOT NULL DROP TABLE Eventos;
 IF OBJECT_ID('Usuarios', 'U') IS NOT NULL DROP TABLE Usuarios;
 IF OBJECT_ID('Cupons', 'U') IS NOT NULL DROP TABLE Cupons;
 GO
 
--- 2. TABELA USUARIOS (Nomes exatos: Cpf, Nome, Email)
+--TABELA USUARIOS
 CREATE TABLE Usuarios (
-    Cpf VARCHAR(14) PRIMARY KEY, -- O PDF pede Cpf como PK
+    Cpf VARCHAR(14) PRIMARY KEY,
     Nome VARCHAR(100) NOT NULL,
     Email VARCHAR(100) NOT NULL,
-    Senha VARCHAR(MAX) NOT NULL, -- Necessário para o login funcionar
-    NivelAcesso INT DEFAULT 3 -- 0 para usuário comum, 1 para administrador
+    Senha VARCHAR(MAX) NOT NULL, 
+    NivelAcesso INT DEFAULT 3 
 );
 
--- 3. TABELA EVENTOS (Nomes exatos: Id, Nome, CapacidadeTotal, DataEvento, PrecoPadrao)
+--TABELA EVENTOS
 CREATE TABLE Eventos (
     Id INT PRIMARY KEY IDENTITY,
     Nome VARCHAR(100) NOT NULL,
@@ -25,17 +25,17 @@ CREATE TABLE Eventos (
     CapacidadeTotal INT NOT NULL,
     DataEvento DATETIME NOT NULL,
     PrecoPadrao DECIMAL(10,2) NOT NULL,
-    ImagemURL VARCHAR(MAX) NULL -- ADICIONE ESTA LINHA
+    ImagemURL VARCHAR(MAX) NULL 
 );
 
--- 4. TABELA CUPONS (Nomes exatos: codigo, PorcentagemDesconto, valorMinimoregra)
+--TABELA CUPONS 
 CREATE TABLE Cupons (
     codigo VARCHAR(50) PRIMARY KEY,
     PorcentagemDesconto DECIMAL(5,2) NOT NULL,
     valorMinimoregra DECIMAL(10,2) NOT NULL
 );
 
--- 5. TABELA RESERVAS (A principal da AV2, mas obrigatória no script da AV1)
+--TABELA RESERVAS
 CREATE TABLE Reservas (
     Id INT PRIMARY KEY IDENTITY,
     UsuarioCpf VARCHAR(14) NOT NULL FOREIGN KEY REFERENCES Usuarios(Cpf),
