@@ -181,7 +181,7 @@ function toggleForm() {
 
 async function enviar() {
     if (isRegister) {
-        // --- CADASTRO ---
+        //CADASTRO
         const payload = {
             Nome: document.getElementById('reg-nome').value,
             Cpf: document.getElementById('reg-cpf').value, // Ajustado para "Cpf"
@@ -204,20 +204,19 @@ async function enviar() {
         }
 
     } else {
-        // --- LOGIN ---
+        //LOGIN
         const emailInput = document.getElementById('email').value;
         const senhaInput = document.getElementById('senha').value;
 
         const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ Email: emailInput, Senha: senhaInput }) // Nomes batendo com LoginRequest no C#
+            body: JSON.stringify({ Email: emailInput, Senha: senhaInput }) 
         });
 
         if (res.ok) {
             const user = await res.json();
             
-            // Padronizamos o objeto que vai para o LocalStorage
             const usuarioPadronizado = {
                 Cpf: user.cpf || user.Cpf,
                 Nome: user.nome || user.Nome,
@@ -235,7 +234,7 @@ async function enviar() {
                 showConfirmButton: false
             });
 
-            // Redirecionamento usando o nível que você manteve
+            //Redirecionamento 
             setTimeout(() => {
                 if (usuarioPadronizado.NivelAcesso === 1) {
                     window.location.href = 'admin.html';
