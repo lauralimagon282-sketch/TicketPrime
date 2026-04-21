@@ -147,47 +147,47 @@
  <script>
     let isRegister = false;
 
-    function toggleForm() {
-        isRegister = !isRegister;
-        const title = document.getElementById('form-title');
-        const campos = document.getElementById('campos');
-        const btn = document.querySelector('.card button');
-        const toggleText = document.getElementById('toggle-text');
+function toggleForm() {
+    isRegister = !isRegister;
+    const title = document.getElementById('form-title');
+    const campos = document.getElementById('campos');
+    const btn = document.querySelector('.card button');
+    const toggleText = document.getElementById('toggle-text');
 
-        if (isRegister) {
-            title.innerText = "Criar Conta";
-            campos.innerHTML = `
-                <input type="text" id="reg-nome" placeholder="Nome Completo">
-                <input type="text" id="reg-cpf" placeholder="CPF">
-                <input type="email" id="reg-email" placeholder="E-mail">
-                <input type="password" id="reg-senha" placeholder="Crie uma Senha">
-                <select id="reg-nivel" style="width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #ddd;">
-                    <option value="3">Quero Comprar Ingressos (Cliente)</option>
-                    <option value="2">Quero Anunciar Shows (Vendedor)</option>
-                </select>
-            `;
-            btn.innerText = "Finalizar Cadastro";
-            toggleText.innerHTML = "Já possui conta? <b>Faça Login</b>";
-        } else {
-            title.innerText = "Acessar Conta";
-            campos.innerHTML = `
-                <input type="email" id="email" placeholder="E-mail">
-                <input type="password" id="senha" placeholder="Senha">
-            `;
-            btn.innerText = "Entrar";
-            toggleText.innerHTML = "Não tem conta? <b>Cadastre-se</b>";
-        }
+    if (isRegister) {
+        title.innerText = "Criar Conta";
+        campos.innerHTML = `
+            <input type="text" id="reg-nome" placeholder="Nome Completo">
+            <input type="text" id="reg-cpf" placeholder="CPF (apenas números)">
+            <input type="email" id="reg-email" placeholder="E-mail">
+            <input type="password" id="reg-senha" placeholder="Crie uma Senha">
+            <select id="reg-nivel" style="width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                <option value="3">Quero Comprar Ingressos (Cliente)</option>
+                <option value="2">Quero Anunciar Shows (Vendedor)</option>
+            </select>
+        `;
+        btn.innerText = "Finalizar Cadastro";
+        toggleText.innerHTML = "Já possui conta? <b>Faça Login</b>";
+    } else {
+        title.innerText = "Acessar Conta";
+        campos.innerHTML = `
+            <input type="email" id="email" placeholder="E-mail">
+            <input type="password" id="senha" placeholder="Senha">
+        `;
+        btn.innerText = "Entrar";
+        toggleText.innerHTML = "Não tem conta? <b>Cadastre-se</b>";
     }
+}
 
 async function enviar() {
     if (isRegister) {
-        //PARTE DO CADASTRO
+        // --- CADASTRO ---
         const payload = {
-            nome: document.getElementById('reg-nome').value,
-            cpf: document.getElementById('reg-cpf').value,
-            email: document.getElementById('reg-email').value,
-            senha: document.getElementById('reg-senha').value,
-            nivelAcesso: parseInt(document.getElementById('reg-nivel').value)
+            Nome: document.getElementById('reg-nome').value,
+            Cpf: document.getElementById('reg-cpf').value, // Ajustado para "Cpf"
+            Email: document.getElementById('reg-email').value,
+            Senha: document.getElementById('reg-senha').value,
+            NivelAcesso: parseInt(document.getElementById('reg-nivel').value)
         };
 
         const res = await fetch('/api/usuarios', {
@@ -204,36 +204,45 @@ async function enviar() {
         }
 
     } else {
-        //PARTE DO LOGIN
-        const email = document.getElementById('email').value;
-        const senha = document.getElementById('senha').value;
+        // --- LOGIN ---
+        const emailInput = document.getElementById('email').value;
+        const senhaInput = document.getElementById('senha').value;
 
         const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, senha })
+            body: JSON.stringify({ Email: emailInput, Senha: senhaInput }) // Nomes batendo com LoginRequest no C#
         });
 
         if (res.ok) {
             const user = await res.json();
-            localStorage.setItem('usuarioLogado', JSON.stringify(user));
+            
+            // Padronizamos o objeto que vai para o LocalStorage
+            const usuarioPadronizado = {
+                Cpf: user.cpf || user.Cpf,
+                Nome: user.nome || user.Nome,
+                Email: user.email || user.Email,
+                NivelAcesso: user.nivelAcesso || user.NivelAcesso
+            };
+
+            localStorage.setItem('usuarioLogado', JSON.stringify(usuarioPadronizado));
 
             Swal.fire({
                 title: 'Bem-vindo!',
-                text: `Olá, ${user.nome}!`,
+                text: `Olá, ${usuarioPadronizado.Nome}!`,
                 icon: 'success',
                 timer: 1500,
                 showConfirmButton: false
             });
 
-            // Redirecionamento correto conforme o nível
+            // Redirecionamento usando o nível que você manteve
             setTimeout(() => {
-                if (user.nivelAcesso === 1) {
-                    window.location.href = 'admin.html';    // Moderador
-                } else if (user.nivelAcesso === 2) {
-                    window.location.href = 'vendedor.html'; // Vendedor
+                if (usuarioPadronizado.NivelAcesso === 1) {
+                    window.location.href = 'admin.html';
+                } else if (usuarioPadronizado.NivelAcesso === 2) {
+                    window.location.href = 'vendedor.html';
                 } else {
-                    window.location.href = 'cliente.html';  // Cliente
+                    window.location.href = 'cliente.html';
                 }
             }, 1500);
 
@@ -241,32 +250,5 @@ async function enviar() {
             Swal.fire({ title: 'Erro!', text: 'E-mail ou senha incorretos.', icon: 'error' });
         }
     }
-} 
-    function abrirSuporte() { 
-        document.getElementById('modalSuporte').style.display = 'flex'; 
-    }
-
-    function fecharSuporte() { 
-        document.getElementById('modalSuporte').style.display = 'none'; 
-    }
-
-    async function enviarSuporte() {
-        const dados = {
-            nome: document.getElementById('sup-nome').value,
-            email: document.getElementById('sup-email').value,
-            tipo: document.getElementById('sup-tipo').value,
-            mensagem: document.getElementById('sup-msg').value
-        };
-
-        const res = await fetch('/api/suporte', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        });
-
-        if (res.ok) {
-            Swal.fire({ title: 'Enviado!', text: 'Mensagem enviada com sucesso!', icon: 'success' });
-            fecharSuporte();
-        }
-    }
+}
 </script>

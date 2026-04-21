@@ -14,165 +14,104 @@ app.UseStaticFiles();
 
 string connectionString = "Server=localhost\\SQLEXPRESS;Database=TicketPrime;Trusted_Connection=True;TrustServerCertificate=True;";
 
-// ==========================
-// USUÁRIOS & LOGIN
-// ==========================
-
-// CADASTRAR (Nome, CPF, Email, Senha, NivelAcesso)
+// --- 1. USUÁRIOS & LOGIN ---
 app.MapPost("/api/usuarios", async (Usuario usuario) =>
 {
-    // 1. Validação de campos vazios (Mantida)
-    if (string.IsNullOrWhiteSpace(usuario.Nome) || 
-        string.IsNullOrWhiteSpace(usuario.Cpf) || 
-        string.IsNullOrWhiteSpace(usuario.Email) || 
-        string.IsNullOrWhiteSpace(usuario.Senha))
-    {
-        return Results.BadRequest("Todos os campos são obrigatórios.");
-    }
+    if (string.IsNullOrWhiteSpace(usuario.Cpf) || string.IsNullOrWhiteSpace(usuario.Nome))
+        return Results.BadRequest("Campos obrigatórios ausentes.");
 
     using var db = new SqlConnection(connectionString);
-    
-    // 2. Validação de CPF Duplicado (Mantida)
-    var existe = await db.QueryFirstOrDefaultAsync<int>(
-        "SELECT 1 FROM Usuarios WHERE Cpf = @Cpf", new { usuario.Cpf }
-    );
+    var existe = await db.QueryFirstOrDefaultAsync<int>("SELECT 1 FROM Usuarios WHERE Cpf = @Cpf", new { usuario.Cpf });
     if (existe == 1) return Results.BadRequest("Este CPF já está cadastrado.");
 
-    // 3. Inserção no Banco (CORRIGIDA: agora salva o NivelAcesso)
     var sql = @"INSERT INTO Usuarios (Cpf, Nome, Email, Senha, NivelAcesso) 
                 VALUES (@Cpf, @Nome, @Email, @Senha, @NivelAcesso)";
-    
     await db.ExecuteAsync(sql, usuario);
-    
-    return Results.Created($"/api/usuarios/{usuario.Cpf}", new { 
-        usuario.Cpf, 
-        usuario.Nome, 
-        usuario.Email, 
-        usuario.NivelAcesso 
-    });
+    return Results.Created($"/api/usuarios/{usuario.Cpf}", usuario);
 });
-// NOVA ROTA: Listar eventos de um vendedor específico
-app.MapGet("/api/eventos/vendedor/{vendedorId}", async (int vendedorId) => {
-    using var db = new SqlConnection(connectionString);
-    var sql = "SELECT * FROM Eventos WHERE VendedorId = @vendedorId ORDER BY Data ASC";
-    var eventos = await db.QueryAsync<Evento>(sql, new { vendedorId });
-    return Results.Ok(eventos);
-});
-// LOGIN (Email e Senha)
+
 app.MapPost("/api/login", async (LoginRequest login) =>
 {
     using var db = new SqlConnection(connectionString);
-    
-    //Checa se o e-mail existe
-    var existeEmail = await db.QueryFirstOrDefaultAsync<int>(
-        "SELECT 1 FROM Usuarios WHERE LOWER(TRIM(Email)) = LOWER(TRIM(@Email))", 
-        new { login.Email }
-    );
-
-    if (existeEmail == 0) 
-    {
-        // Retorna um erro específico: 404 (Não encontrado)
-        return Results.NotFound("Usuário não cadastrado. Por favor, cadastre-se primeiro.");
-    }
-
-    // 2. Se o e-mail existe, checa a senha
     var sql = "SELECT * FROM Usuarios WHERE LOWER(TRIM(Email)) = LOWER(TRIM(@Email)) AND Senha = @Senha";
     var user = await db.QueryFirstOrDefaultAsync<Usuario>(sql, login);
-    
     if (user != null) return Results.Ok(user);
-
-    // Se chegou aqui, o e-mail existe mas a senha está errada
-    return Results.BadRequest("Senha incorreta.");
+    return Results.BadRequest("E-mail ou senha incorretos.");
 });
-app.MapPost("/api/suporte", async (SuporteMensagem msg) =>
-{
-    // Fail-Fast: Validação básica
-    if (string.IsNullOrWhiteSpace(msg.Nome) || string.IsNullOrWhiteSpace(msg.Mensagem))
-        return Results.BadRequest("Nome e Mensagem são obrigatórios.");
 
-    using var db = new SqlConnection(connectionString);
-    var sql = @"INSERT INTO Suporte (Nome, Email, Tipo, Mensagem) 
-                VALUES (@Nome, @Email, @Tipo, @Mensagem)";
-    
-    await db.ExecuteAsync(sql, msg);
-    return Results.Ok("Mensagem enviada com sucesso!");
-});
-// ROTA PARA CADASTRAR EVENTOS (Usada pelo Vendedor)
+// --- 2. EVENTOS (CORRIGIDO PARA INCLUIR O LUGAR NO INSERT) ---
+
 app.MapPost("/api/eventos", async (Evento ev) => {
-    // Adicione a validação de quantidade aqui também por segurança
-    if (ev.Preco <= 0 || ev.Quantidade <= 0) 
-        return Results.BadRequest("Preço e quantidade devem ser maiores que zero.");
-
-    using var db = new SqlConnection(connectionString);   
-    var sql = @"INSERT INTO Eventos (Nome, Local, Data, Preco, Quantidade, ImagemURL, VendedorId) 
-                VALUES (@Nome, @Local, @Data, @Preco, @Quantidade, @ImagemURL, @VendedorId)";
+    using var db = new SqlConnection(connectionString); 
+    
+    // CORREÇÃO AQUI: Adicionado 'Lugar' tanto na lista de colunas quanto nos @parâmetros
+    var sql = @"INSERT INTO Eventos (Nome, Lugar, CapacidadeTotal, DataEvento, PrecoPadrao, ImagemURL) 
+                VALUES (@Nome, @Lugar, @CapacidadeTotal, @DataEvento, @PrecoPadrao, @ImagemURL)";
     
     await db.ExecuteAsync(sql, ev);
     return Results.Ok("Show anunciado com sucesso!");
 });
 
-// ROTA PARA LISTAR EVENTOS (Usada pelo Cliente na Vitrine)
 app.MapGet("/api/eventos", async () => {
     using var db = new SqlConnection(connectionString);
-    var sql = "SELECT * FROM Eventos ORDER BY Data ASC";
+    var sql = "SELECT * FROM Eventos ORDER BY DataEvento ASC";
     var eventos = await db.QueryAsync<Evento>(sql);
     return Results.Ok(eventos);
 });
-// ROTA PARA EXCLUIR EVENTO (Acessada pelo Admin)
+
 app.MapDelete("/api/eventos/{id}", async (int id) => {
     using var db = new SqlConnection(connectionString);
-    var sql = "DELETE FROM Eventos WHERE Id = @id";
-    await db.ExecuteAsync(sql, new { id });
-    return Results.Ok("Evento removido com sucesso!");
+    await db.ExecuteAsync("DELETE FROM Eventos WHERE Id = @id", new { id });
+    return Results.Ok("Evento removido!");
 });
 
-// ROTA PARA CRIAR CUPOM ADMIN
+// --- 3. CUPONS ---
 app.MapPost("/api/cupons", async (Cupom cp) => {
-    // Validação de segurança no Back-end
-    if (cp.PorcentagemDesconto <= 0) {
-        return Results.BadRequest("O desconto deve ser maior que zero.");
-    }
-
     using var db = new SqlConnection(connectionString);
-    var sql = "INSERT INTO Cupons (Codigo, PorcentagemDesconto, ValorMinimo) VALUES (@Codigo, @PorcentagemDesconto, @ValorMinimo)";
-    
+    var sql = @"INSERT INTO Cupons (codigo, PorcentagemDesconto, valorMinimoregra) 
+                VALUES (@codigo, @PorcentagemDesconto, @valorMinimoregra)";
     await db.ExecuteAsync(sql, cp);
-    return Results.Ok("Cupom criado com sucesso!");
+    return Results.Ok("Cupom criado!");
 });
-// ROTA PARA LISTAR TODOS OS CUPONS
+
 app.MapGet("/api/cupons", async () => {
     using var db = new SqlConnection(connectionString);
-    var sql = "SELECT * FROM Cupons";
-    var cupons = await db.QueryAsync<Cupom>(sql);
-    return Results.Ok(cupons);
+    return Results.Ok(await db.QueryAsync<Cupom>("SELECT * FROM Cupons"));
 });
-
-// ROTA PARA EXCLUIR UM CUPOM
-app.MapDelete("/api/cupons/{id}", async (int id) => {
-    using var db = new SqlConnection(connectionString);
-    var sql = "DELETE FROM Cupons WHERE Id = @id";
-    await db.ExecuteAsync(sql, new { id });
-    return Results.Ok("Cupom removido!");
-});
-// ROTA PARA VALIDAR O CUPOM (Adicione isso!)
+// NOVA ROTA: Necessária para o botão "Aplicar Cupom" do cliente funcionar
 app.MapGet("/api/cupons/{codigo}", async (string codigo) => {
     using var db = new SqlConnection(connectionString);
-    var sql = "SELECT * FROM Cupons WHERE Codigo = @codigo";
+    // Busca o cupom pelo código exato
+    var sql = "SELECT * FROM Cupons WHERE UPPER(codigo) = UPPER(@codigo)";
     var cupom = await db.QueryFirstOrDefaultAsync<Cupom>(sql, new { codigo });
-
-    if (cupom != null) {
-        return Results.Ok(new { 
-            codigo = cupom.Codigo, 
-            porcentagem = cupom.PorcentagemDesconto 
-        });
-    }
+    
+    if (cupom != null) return Results.Ok(cupom);
     return Results.NotFound("Cupom não encontrado.");
 });
+
+app.MapDelete("/api/cupons/{codigo}", async (string codigo) => {
+    using var db = new SqlConnection(connectionString);
+    await db.ExecuteAsync("DELETE FROM Cupons WHERE codigo = @codigo", new { codigo });
+    return Results.Ok("Cupom removido!");
+});
+
+// --- 4. RESERVAS ---
+app.MapPost("/api/reservas", async (Reserva res) => {
+    using var db = new SqlConnection(connectionString);
+    var sql = @"INSERT INTO Reservas (UsuarioCpf, EventoId, ValorFinalPago) 
+                VALUES (@UsuarioCpf, @EventoId, @ValorFinalPago)";
+    await db.ExecuteAsync(sql, res);
+    return Results.Ok("Reserva realizada com sucesso!");
+});
+
 app.Run();
 
-// MODELS (Records)
-public record Usuario(int Id, string Nome, string Cpf, string Email, string Senha, int NivelAcesso);
+// --- MODELS ---
+public record Usuario(string Cpf, string Nome, string Email, string Senha, int NivelAcesso);
 public record LoginRequest(string Email, string Senha);
-public record Evento(int Id, string Nome, string Local, DateTime Data, decimal Preco, int Quantidade, string ImagemURL, int VendedorId);
-public record Cupom(int Id, string Codigo, decimal PorcentagemDesconto, decimal ValorMinimo);
-public record SuporteMensagem(string Nome, string Email, string Tipo, string Mensagem);
+
+// O record Evento já estava certo, mas o SQL acima não usava o campo 'Lugar'
+public record Evento(int? Id, string Nome, string Lugar, int CapacidadeTotal, DateTime DataEvento, decimal PrecoPadrao, string ImagemURL);
+
+public record Cupom(string codigo, decimal PorcentagemDesconto, decimal valorMinimoregra);
+public record Reserva(string UsuarioCpf, int EventoId, decimal ValorFinalPago);

@@ -115,358 +115,310 @@
     </div>
 
     <script>
-        let descontoAtivo = 0; 
-        
-        // CORREÇÃO GERAL: Centralizamos como buscamos o usuário
-        const getUsuarioLogado = () => JSON.parse(localStorage.getItem('usuario'));
+        // ================= CONFIGURAÇÃO INICIAL =================
+let descontoAtivo = 0;
 
-        const user = getUsuarioLogado();
-        if (!user) window.location.href = 'index.html';
+// Centralizamos a busca do usuário para evitar erros de "null"
+const getUsuarioLogado = () => JSON.parse(localStorage.getItem('usuarioLogado'));
 
-        document.getElementById('boasVindas').innerText = `Olá, ${user.nome.split(' ')[0]}! 👋`;
+const user = getUsuarioLogado();
+if (!user) {
+    window.location.href = 'index.html';
+} else {
+    // Exibe o primeiro nome do usuário no topo
+    const nomeExibicao = user.Nome || user.nome || "Explorador";
+    document.getElementById('boasVindas').innerText = `Olá, ${nomeExibicao.split(' ')[0]}! 👋`;
+}
 
-        // ================= FUNÇÕES DO HEADER =================
-        function abrirPerfil() {
-            const usuario = getUsuarioLogado();
-            if (!usuario) return;
+// Carregar shows ao abrir a página
+window.onload = carregarShows;
 
-            Swal.fire({
-                title: 'Meu Perfil',
-                html: `
-                    <div style="text-align: left; padding: 10px;">
-                        <p><strong>Nome:</strong> ${usuario.nome || usuario.Nome}</p>
-                        <p><strong>E-mail:</strong> ${usuario.email || usuario.Email}</p>
-                        <p><strong>Tipo de Conta:</strong> Cliente</p>
+// ================= FUNÇÕES DO HEADER =================
+function abrirPerfil() {
+    const usuario = getUsuarioLogado();
+    if (!usuario) return;
+
+    Swal.fire({
+        title: 'Meu Perfil',
+        html: `
+            <div style="text-align: left; padding: 10px;">
+                <p><strong>Nome:</strong> ${usuario.Nome || usuario.nome}</p>
+                <p><strong>E-mail:</strong> ${usuario.Email || usuario.email}</p>
+                <p><strong>CPF:</strong> ${usuario.Cpf || usuario.cpf}</p>
+                <p><strong>Tipo de Conta:</strong> Cliente</p>
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonColor: '#2d2a4e'
+    });
+}
+
+function abrirModalMeusIngressos() {
+    // Busca os ingressos salvos no LocalStorage (simulando histórico)
+    const todosOsIngressos = JSON.parse(localStorage.getItem('meus_ingressos')) || [];
+    const usuarioCorreto = getUsuarioLogado();
+
+    if (!usuarioCorreto) {
+        Swal.fire('Erro', 'Sua sessão expirou.', 'error');
+        return;
+    }
+
+    const cpfUsuario = usuarioCorreto.Cpf || usuarioCorreto.cpf;
+    // Filtra ingressos que pertencem a este CPF
+    const compras = todosOsIngressos.filter(ing => ing.usuarioCpf === cpfUsuario);
+
+    if (compras.length === 0) {
+        Swal.fire({
+            title: 'Meus Ingressos',
+            text: 'Você ainda não possui ingressos nesta conta.',
+            icon: 'info',
+            confirmButtonColor: '#2d2a4e'
+        });
+        return;
+    }
+
+    let listaHTML = `
+        <div style="max-height: 400px; overflow-y: auto; padding: 5px;">
+            ${compras.map(ing => `
+                <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px; background: #ffffff; border-radius: 12px; text-align: left; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <div style="flex: 1;">
+                        <strong style="font-size: 16px; color: #2d2a4e; display: block; margin-bottom: 4px;">${ing.nome}</strong>
+                        <div style="font-size: 12px; color: #666; line-height: 1.6;">
+                            <span>📅 Data Compra: ${ing.dataCompra}</span><br>
+                            <span>💰 Valor Pago: ${ing.valor}</span><br>
+                            <span style="color: #00b894; font-weight: bold;">✔ Ingresso Confirmado</span>
+                        </div>
                     </div>
-                `,
-                icon: 'info',
-                confirmButtonColor: '#2d2a4e'
-            });
-        }
-
-        // CORREÇÃO: Função Meus Ingressos
-        function abrirModalMeusIngressos() {
-            const todosOsIngressos = JSON.parse(localStorage.getItem('meus_ingressos')) || [];
-            
-            // Aqui estava o erro! Trocado para buscar exatamente a chave que você usa no login ('usuario')
-            const usuarioCorreto = getUsuarioLogado();
-
-            if (!usuarioCorreto) {
-                Swal.fire('Erro', 'Sua sessão expirou.', 'error');
-                return;
-            }
-
-            const emailDoUsuario = usuarioCorreto.email || usuarioCorreto.Email;
-
-            // Filtro perfeito baseado no email correto
-            const compras = todosOsIngressos.filter(ing => ing.usuarioEmail === emailDoUsuario);
-
-            if (compras.length === 0) {
-                Swal.fire({
-                    title: 'Meus Ingressos',
-                    text: 'Você ainda não possui ingressos nesta conta.',
-                    icon: 'info',
-                    confirmButtonColor: '#2d2a4e'
-                });
-                return;
-            }
-
-            let listaHTML = `
-                <div style="max-height: 400px; overflow-y: auto; padding: 5px;">
-                    ${compras.map(ing => `
-                        <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px; background: #ffffff; border-radius: 12px; text-align: left; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                            <div style="flex: 1;">
-                                <strong style="font-size: 16px; color: #2d2a4e; display: block; margin-bottom: 4px;">${ing.nome}</strong>
-                                <div style="font-size: 12px; color: #666; line-height: 1.6;">
-                                    <span>📅 Data Compra: ${ing.dataCompra}</span><br>
-                                    <span>${ing.local}</span><br>
-                                    <span>${ing.horario}</span>
-                                </div>
-                                <div style="margin-top: 8px;">
-                                    <span style="background: #e6faf5; color: #00b894; padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: bold;">✔ Confirmado</span>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
                 </div>
-            `;
+            `).join('')}
+        </div>
+    `;
 
-            Swal.fire({
-                title: 'Seus Ingressos 🎟️',
-                html: listaHTML,
-                confirmButtonText: 'Fechar',
-                confirmButtonColor: '#2d2a4e',
-                width: '480px'
+    Swal.fire({
+        title: 'Seus Ingressos 🎟️',
+        html: listaHTML,
+        confirmButtonText: 'Fechar',
+        confirmButtonColor: '#2d2a4e',
+        width: '480px'
+    });
+}
+
+function logout() {
+    Swal.fire({
+        title: 'Sair',
+        text: "Deseja realmente encerrar sua sessão?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d63031',
+        confirmButtonText: 'Sim, sair!',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            localStorage.removeItem('usuarioLogado');
+            window.location.href = 'index.html';
+        }
+    });
+}
+
+// ================= FUNÇÕES DA LOJA E COMPRA =================
+async function carregarShows() {
+    try {
+        const res = await fetch('/api/eventos');
+        const eventos = await res.json();
+        const container = document.getElementById('eventos-grid'); 
+        container.innerHTML = "";
+
+        eventos.forEach(ev => {
+            const dataFormatada = new Date(ev.dataEvento || ev.DataEvento).toLocaleString('pt-BR', { 
+                dateStyle: 'short', timeStyle: 'short' 
             });
-        }
 
-        function logout() {
-            Swal.fire({
-                title: 'Sair',
-                text: "Deseja realmente encerrar sua sessão?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d63031',
-                cancelButtonColor: '#aaa',
-                confirmButtonText: 'Sim, sair!',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    localStorage.removeItem('usuario'); // Limpa apenas o usuário para não quebrar a loja
-                    window.location.href = 'index.html';
-                }
-            });
-        }
-
-        // ================= FUNÇÕES DA LOJA E COMPRA =================
-        async function carregarShows() {
-            try {
-                const res = await fetch('/api/eventos');
-                const eventos = await res.json();
-                const container = document.getElementById('eventos-grid'); 
-                container.innerHTML = "";
-
-                eventos.forEach(ev => {
-                    const dataFormatada = new Date(ev.data || ev.Data).toLocaleString('pt-BR', { 
-                        dateStyle: 'short', timeStyle: 'short' 
-                    });
-
-                    container.innerHTML += `
-                        <div class="card-evento">
-                            <img src="${ev.imagemURL || ev.ImagemURL || 'https://via.placeholder.com/500'}" class="card-img" onerror="this.src='https://images.unsplash.com/photo-1459749411177-042180ce673c?auto=format&fit=crop&w=500&q=80'">
-                            <div class="card-corpo">
-                                <span class="tag-categoria">Música</span>
-                                <h3 style="margin: 10px 0;">${ev.nome || ev.Nome}</h3>
-                                <p style="color:#666; font-size:14px; line-height: 1.5;">
-                                    📍 ${ev.local || ev.Local}<br>
-                                    📅 ${dataFormatada}<br>
-                                    🎫 Ingressos: ${ev.quantidade || ev.Quantidade || 0}
-                                </p>
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
-                                    <span class="preco">R$ ${Number(ev.preco || ev.Preco).toFixed(2)}</span>
-                                    <button onclick="comprar(event)" class="btn-comprar">Comprar</button>
-                                </div>
-                            </div>
-                        </div>`;
-                });
-            } catch (err) { 
-                console.error("Erro ao carregar vitrine:", err); 
-            }
-        }
-
-        function comprar(event) {
-            try {
-                const modal = document.getElementById('modalPagamento');
-                if (modal) modal.style.display = 'flex';
-
-                const card = event.target.closest('.card-evento');
-                const nomeShow = card.querySelector('h3').innerText;
-                const precoShow = card.querySelector('.preco').innerText;
-
-                document.getElementById('detalhes-show-pagamento').innerHTML = `
-                    <p style="margin:5px 0;"><strong>Evento:</strong> <span id="nome-show-modal">${nomeShow}</span></p>
-                    <p style="margin:5px 0;"><strong>Valor Unitário:</strong> <span id="valor-show-modal">${precoShow}</span></p>
-                `;
-
-                mudarMetodo('pix'); 
-            } catch (err) {
-                console.error("Erro ao abrir modal:", err);
-            }
-        }
-
-        function fecharPagamento() {
-            document.getElementById('modalPagamento').style.display = 'none';
-            descontoAtivo = 0; 
-            const inputCupom = document.getElementById('input-cupom');
-            if (inputCupom) { inputCupom.value = ""; inputCupom.disabled = false; }
-            const msgCupom = document.getElementById('msg-cupom');
-            if (msgCupom) { msgCupom.style.display = "none"; msgCupom.innerText = ""; }
-            const detalhes = document.getElementById('detalhes-show-pagamento');
-            if (detalhes) {
-                const linhaDesconto = detalhes.querySelector('.linha-desconto');
-                if (linhaDesconto) linhaDesconto.remove();
-            }
-        }
-
-        async function aplicarCupom() {
-            const inputCupom = document.getElementById('input-cupom');
-            const msg = document.getElementById('msg-cupom');
-            const areaDetalhes = document.getElementById('detalhes-show-pagamento');
-            
-            if (!inputCupom || !msg || !areaDetalhes) return;
-
-            const nomeCupom = inputCupom.value.trim().toUpperCase();
-            if (!nomeCupom) return;
-
-            try {
-                const response = await fetch(`/api/cupons/${nomeCupom}`);
-                if (!response.ok) throw new Error("Cupom não encontrado");
-
-                const cupomData = await response.json(); 
-                const textoPreco = areaDetalhes.innerText;
-                const match = textoPreco.match(/R\$\s*(\d+(?:[\.,]\d+)?)/);
-                let valorOriginal = match ? parseFloat(match[1].replace(',', '.')) : 0;
-
-                const porcentagem = cupomData.porcentagem; 
-                const descontoCalculado = porcentagem / 100;
-                const novoValor = valorOriginal * (1 - descontoCalculado);
-
-                msg.style.display = "block";
-                msg.innerText = `Cupom ${nomeCupom} aplicado! (${porcentagem}% OFF)`;
-                msg.style.color = "#27ae60";
-                
-                let linhaExistente = areaDetalhes.querySelector('.linha-desconto');
-                if (linhaExistente) linhaExistente.remove();
-                
-                areaDetalhes.innerHTML += `
-                    <p class="linha-desconto" style="color: #27ae60; margin-top: 5px; font-size: 15px; font-weight: bold;">
-                        Total com Desconto: R$ ${novoValor.toFixed(2)}
-                    </p>`;
-                    
-                inputCupom.disabled = true;
-
-            } catch (err) {
-                msg.style.display = "block";
-                msg.innerText = "Cupom inválido ou expirado.";
-                msg.style.color = "#eb4d4b";
-            }
-        }
-
-        function mudarMetodo(tipo) {
-            const area = document.getElementById('area-metodo');
-            const usuarioAtivo = getUsuarioLogado() || { email: 'contato@ticketprime.com' };
-
-            area.innerHTML = "";
-
-            if (tipo === 'pix') {
-                area.innerHTML = `
-                    <div style="text-align:center; animation: fadeIn 0.3s;">
-                        <p style="margin-bottom:10px; color:#666;">Escaneie o QR Code:</p>
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TicketPrimePix" style="border-radius:10px;">
-                        <input type="text" value="00020101021226580014br.gov.bcb.pix" readonly 
-                               style="width:100%; padding:8px; text-align:center; border:1px dashed #ccc; margin-top:10px;">
-                    </div>`;
-            } else if (tipo === 'cartao') {
-                area.innerHTML = `
-                    <div style="animation: fadeIn 0.3s;" class="area-cartao">
-                        <div style="display:flex; gap:10px; margin-bottom:15px;">
-                            <button type="button" id="btn-credito" class="btn-metodo ativo" onclick="selecionarSubMetodo('credito')">Crédito</button>
-                            <button type="button" id="btn-debito" class="btn-metodo" onclick="selecionarSubMetodo('debito')">Débito</button>
+            container.innerHTML += `
+                <div class="card-evento">
+                    <img src="${ev.imagemURL || 'https://via.placeholder.com/500'}" class="card-img">
+                    <div class="card-corpo">
+                        <span class="tag-categoria">Música</span>
+                        <h3>${ev.nome}</h3>
+                        <p style="color:#666; font-size:14px;">
+                            📅 ${dataFormatada}<br>
+                            🎫 Capacidade: ${ev.capacidadeTotal}
+                        </p>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
+                            <span class="preco">R$ ${Number(ev.precoPadrao).toFixed(2)}</span>
+                            <button onclick="prepararCompra(event, ${ev.id})" class="btn-comprar">Comprar</button>
                         </div>
-                        <input type="hidden" id="tipo-cartao" value="credito">
-                        <div id="campos-cartao">
-                            <input type="text" class="input-obrig" placeholder="Número do Cartão" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
-                            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                                <input type="text" class="input-obrig" placeholder="MM/AA" style="width:60%; padding:12px; border:1px solid #ddd; border-radius:5px;">
-                                <input type="text" class="input-obrig" placeholder="CVV" style="width:40%; padding:12px; border:1px solid #ddd; border-radius:5px;">
-                            </div>
-                            <input type="text" class="input-obrig" placeholder="Nome impresso no cartão" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:5px;">
-                            <select id="select-parcelas" style="width:100%; padding:12px; margin-top:10px; border:1px solid #ddd; border-radius:5px;">
-                                <option value="1">1x sem juros</option>
-                                <option value="2">2x sem juros</option>
-                                <option value="3">3x sem juros</option>
-                            </select>
-                        </div>
-                    </div>`;
-            } else if (tipo === 'boleto') {
-                area.innerHTML = `
-                    <div style="text-align:center; animation: fadeIn 0.3s;">
-                        <p style="margin-top:15px;">Boleto enviado para:<br><strong>${usuarioAtivo.email || usuarioAtivo.Email}</strong></p>
-                    </div>`;
-            }
-        }
+                    </div>
+                </div>`;
+        });
+    } catch (err) { 
+        console.error("Erro ao carregar vitrine:", err); 
+    }
+}
 
-        function selecionarSubMetodo(metodo) {
-            const btnCredito = document.getElementById('btn-credito');
-            const btnDebito = document.getElementById('btn-debito');
-            const selectParcelas = document.getElementById('select-parcelas');
-            const inputTipo = document.getElementById('tipo-cartao');
+// Função para abrir o modal de pagamento com os dados do show
+let eventoSelecionadoId = null;
 
-            if (metodo === 'credito') {
-                btnCredito.classList.add('ativo');
-                btnDebito.classList.remove('ativo');
-                selectParcelas.style.display = 'block'; 
-                inputTipo.value = 'credito';
-            } else {
-                btnDebito.classList.add('ativo');
-                btnCredito.classList.remove('ativo');
-                selectParcelas.style.display = 'none'; 
-                inputTipo.value = 'debito';
-            }
-        }
+function prepararCompra(event, id) {
+    eventoSelecionadoId = id;
+    const modal = document.getElementById('modalPagamento');
+    modal.style.display = 'flex';
 
-        // CORREÇÃO: Função de Pagamento Refeita e Blindada
-        async function confirmarPagamento() {
-            // 1. Pega os dados com segurança
-            const usuarioCompra = getUsuarioLogado();
-            const emailDono = usuarioCompra ? (usuarioCompra.email || usuarioCompra.Email) : "convidado";
+    const card = event.target.closest('.card-evento');
+    const nomeShow = card.querySelector('h3').innerText;
+    const precoShow = card.querySelector('.preco').innerText;
 
-            // 2. Validação simples apenas se o método for cartão
-            const areaCartao = document.querySelector('.area-cartao');
-            if (areaCartao) {
-                const inputsObrigatorios = areaCartao.querySelectorAll('.input-obrig');
-                for (let input of inputsObrigatorios) {
-                    if (input.value.trim() === "") {
-                        Swal.fire('Campo Obrigatório', `Preencha todos os dados do cartão.`, 'warning');
-                        return;
-                    }
-                }
-            }
+    document.getElementById('detalhes-show-pagamento').innerHTML = `
+        <p><strong>Evento:</strong> <span id="nome-show-modal">${nomeShow}</span></p>
+        <p><strong>Valor:</strong> <span id="valor-show-modal">${precoShow}</span></p>
+    `;
+    mudarMetodo('pix'); 
+}
 
-            // 3. Processamento visual
-            Swal.fire({
-                title: 'Processando...',
-                html: 'Estamos validando os dados com sua operadora.',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
+function fecharPagamento() {
+    document.getElementById('modalPagamento').style.display = 'none';
+    descontoAtivo = 0; 
+}
+
+// CORREÇÃO DO CUPOM: Busca a porcentagem correta da sua API
+let cupomAplicado = false; 
+
+async function aplicarCupom() {
+    if (cupomAplicado) {
+        Swal.fire('Aviso', 'Um cupom já foi aplicado.', 'info');
+        return;
+    }
+
+    const input = document.getElementById('input-cupom');
+    const msg = document.getElementById('msg-cupom');
+    const valorModal = document.getElementById('valor-show-modal');
+    const codigo = input.value.trim().toUpperCase();
+
+    try {
+        const res = await fetch(`/api/cupons/${codigo}`);
+        if (!res.ok) throw new Error();
+        
+        const cupom = await res.json();
+        const porcentagem = cupom.porcentagemDesconto || cupom.PorcentagemDesconto;
+        
+        // --- AQUI ESTÁ O SEGREDO PARA NÃO DAR 16 MIL ---
+        
+        // 1. Pegamos apenas o que é número e ponto/vírgula do texto "R$ 200.00"
+        let textoPreco = valorModal.innerText.replace(/[^\d,.]/g, '').trim();
+        
+        // 2. Garantimos que o JavaScript entenda como número decimal real
+        // Se o valor for "200.00", ele vira 200. Se for "200,00", ele vira 200.
+        let valorBase = parseFloat(textoPreco.replace(',', '.'));
+
+        // Validação extra: se o valorBase for NaN ou estranho, resetamos para o padrão
+        if (isNaN(valorBase)) valorBase = 200; 
+
+        const desconto = porcentagem / 100;
+        const valorComDesconto = valorBase * (1 - desconto);
+
+        // 3. Exibimos formatado corretamente (R$ 160,00)
+        valorModal.innerText = `R$ ${valorComDesconto.toFixed(2).replace('.', ',')}`;
+        
+        // Feedback visual para o cliente
+        msg.innerText = `Cupom ${codigo} aplicado! (${porcentagem}% OFF)`;
+        msg.style.color = "#00b894";
+        msg.style.display = "block";
+
+        // Travas de segurança
+        cupomAplicado = true;
+        input.disabled = true;
+        const btn = document.querySelector("button[onclick='aplicarCupom()']");
+        if(btn) btn.disabled = true;
+
+    } catch (err) {
+        msg.innerText = "Cupom inválido.";
+        msg.style.color = "#d63031";
+        msg.style.display = "block";
+    }
+}
+
+// CORREÇÃO DOS BOTÕES: Faz o conteúdo aparecer ao clicar
+function mudarMetodo(tipo) {
+    const area = document.getElementById('area-metodo');
+    
+    if (tipo === 'pix') {
+        area.innerHTML = `
+            <div style="text-align:center; padding: 10px;">
+                <p style="font-size:12px; color:#666;">Escaneie o QR Code para pagar:</p>
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=TicketPrimePago" style="display:block; margin: 0 auto;">
+            </div>`;
+    } else if (tipo === 'cartao') {
+        area.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:8px; padding:10px;">
+                <select id="tipoCartao" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc;">
+                    <option value="credito">💳 Cartão de Crédito</option>
+                    <option value="debito">💳 Cartão de Débito</option>
+                </select>
+                <input type="text" placeholder="Número do Cartão" style="width:100%; padding:8px;">
+                <input type="text" placeholder="Nome Impresso no Cartão" style="width:100%; padding:8px;">
+                <div style="display:flex; gap:5px;">
+                    <input type="text" placeholder="MM/AA" style="width:50%; padding:8px;">
+                    <input type="text" placeholder="CVV" style="width:50%; padding:8px;">
+                </div>
+                <input type="text" placeholder="CPF do Titular" style="width:100%; padding:8px;">
+            </div>`;
+    } else if (tipo === 'boleto') {
+        area.innerHTML = `
+            <div style="text-align:center; padding:20px; background:#f9f9f9; border-radius:8px; border: 1px dashed #ccc;">
+                <p style="margin:0; font-weight:bold;">📄 Boleto Bancário</p>
+                <p style="font-size:12px; color:#666;">O link para o boleto será gerado após confirmar.</p>
+            </div>`;
+    }
+}
+
+// ================= FUNÇÃO FINAL DE COMPRA (BANCO + LOCALSTORAGE) =================
+async function confirmarPagamento() {
+    const usuario = getUsuarioLogado();
+    const nomeShow = document.getElementById('nome-show-modal').innerText;
+    const valorTexto = document.getElementById('valor-show-modal').innerText;
+    const valorFinal = parseFloat(valorTexto.replace('R$', '').replace(',', '.'));
+
+    const payload = {
+        UsuarioCpf: usuario.Cpf || usuario.cpf,
+        EventoId: eventoSelecionadoId || 1,
+        ValorFinalPago: valorFinal
+    };
+
+    // Exibe loading
+    Swal.fire({ title: 'Processando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+    try {
+        // 1. SALVA NO BANCO (C#)
+        const res = await fetch('/api/reservas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            // 2. SALVA NO LOCALSTORAGE (Para aparecer em "Meus Ingressos" na hora)
+            const novoIngresso = {
+                nome: nomeShow,
+                valor: valorTexto,
+                usuarioCpf: usuario.Cpf || usuario.cpf,
+                dataCompra: new Date().toLocaleDateString('pt-BR')
+            };
+
+            let compras = JSON.parse(localStorage.getItem('meus_ingressos')) || [];
+            compras.push(novoIngresso);
+            localStorage.setItem('meus_ingressos', JSON.stringify(compras));
+
+            Swal.fire('Sucesso!', 'Compra realizada e salva no banco!', 'success').then(() => {
+                fecharPagamento();
+                abrirModalMeusIngressos();
             });
-
-            setTimeout(() => {
-                try {
-                    // 4. Captura do modal corretamente através dos IDs que criamos
-                    const nomeDoShow = document.getElementById('nome-show-modal').innerText;
-                    const valorFinal = document.getElementById('valor-show-modal').innerText;
-
-                    const novoIngresso = {
-                        nome: nomeDoShow,
-                        valor: valorFinal,
-                        usuarioEmail: emailDono, // Aqui o e-mail é atrelado
-                        dataCompra: new Date().toLocaleDateString('pt-BR'),
-                        local: "📍 Local: Evento TicketPrime", 
-                        horario: "⏰ Horário: A Definir",
-                    };
-
-                    // 5. Salva no Storage
-                    let compras = JSON.parse(localStorage.getItem('meus_ingressos')) || [];
-                    compras.push(novoIngresso);
-                    localStorage.setItem('meus_ingressos', JSON.stringify(compras));
-
-                    Swal.close(); 
-                    
-                    // 6. Confirmação
-                    Swal.fire({
-                        title: 'Pagamento Confirmado!',
-                        text: 'Seu ingresso foi gerado com sucesso.',
-                        icon: 'success',
-                        showCancelButton: true,
-                        confirmButtonText: 'Ver Meus Ingressos',
-                        cancelButtonText: 'Continuar Navegando',
-                        confirmButtonColor: '#00b894',
-                        cancelButtonColor: '#2d2a4e',
-                    }).then((result) => {
-                        fecharPagamento();
-                        if (result.isConfirmed) {
-                            abrirModalMeusIngressos();
-                        }
-                    });
-
-                } catch (error) {
-                    console.error("Erro ao processar compra:", error);
-                    Swal.close();
-                    Swal.fire('Erro', 'Houve um problema ao gerar seu ingresso.', 'error');
-                }
-            }, 2000);
+        } else {
+            throw new Error();
         }
+    } catch (error) {
+        Swal.fire('Erro', 'Não foi possível salvar a reserva no banco.', 'error');
+    }
+}
+        
         
         window.onload = carregarShows;
     </script>

@@ -172,7 +172,7 @@
 </div>
         <div class="form-group">
             <label>Local</label>
-            <input type="text" id="local-evento">
+            <input type="text" id="lugar-evento" placeholder="Onde será o show?">
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
             <button class="btn btn-create" onclick="salvarEvento()">Salvar Evento</button>
@@ -182,20 +182,19 @@
 </div>
 
 <script>
-    // 1. Verificação de Segurança e Boas-vindas
-const usuario = JSON.parse(localStorage.getItem('usuario'));
+    //Verificação de Segurança e Boas-vindas
+// 1. Verificação de Segurança e Localhost (Padronizado com index.html)
+const usuario = JSON.parse(localStorage.getItem('usuarioLogado'));
 
-if (!usuario || usuario.nivelAcesso !== 2) {
+if (!usuario || usuario.NivelAcesso !== 2) {
     window.location.href = 'index.html';
 } else {
-    document.getElementById('boas-vindas').innerText = `Olá, ${usuario.nome}! 👋`;
+    document.getElementById('boas-vindas').innerText = `Olá, ${usuario.Nome || usuario.nome}! 👋`;
 }
 
-// 2. Controle do Modal
 function abrirModal() { document.getElementById('modalEvento').style.display = 'flex'; }
 function fecharModal() { document.getElementById('modalEvento').style.display = 'none'; }
 
-// 3. Conversor de Imagem (Arquivo para Texto Base64)
 document.getElementById('ev-arquivo').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
@@ -208,49 +207,26 @@ document.getElementById('ev-arquivo').addEventListener('change', function(e) {
 });
 
 async function salvarEvento() {
-    // 1. Captura dos valores
     const nome = document.getElementById('nome-evento').value.trim();
+    // CAPTURANDO O LUGAR AQUI
+    const lugar = document.getElementById('lugar-evento').value.trim(); 
     const preco = parseFloat(document.getElementById('preco-evento').value);
-    const qtd = parseInt(document.getElementById('qtd-ingressos').value); // COMPLEMENTO: Captura qtd
+    const qtd = parseInt(document.getElementById('qtd-ingressos').value); 
     const data = document.getElementById('data-evento').value;
-    const local = document.getElementById('local-evento').value.trim();
     const imagemBase64 = document.getElementById('ev-imagem-base64').value;
 
-    // 2. Validações Personalizadas
-    if (!nome) {
-        return Swal.fire('Campo Vazio', 'Por favor, digite o nome do show.', 'warning');
+    // VALIDAÇÃO RIGOROSA: Não deixa passar nada vazio
+    if (!nome || !lugar || isNaN(preco) || isNaN(qtd) || !data || !imagemBase64) {
+        return Swal.fire('Atenção', 'Preencha TODOS os campos, incluindo o local!', 'warning');
     }
 
-    if (isNaN(preco) || preco <= 0) {
-        return Swal.fire('Preço Inválido', 'O preço deve ser maior que R$ 0,00.', 'error');
-    }
-
-    // COMPLEMENTO: Validação da quantidade
-    if (isNaN(qtd) || qtd <= 0) {
-        return Swal.fire('Quantidade Inválida', 'A quantidade de ingressos deve ser pelo menos 1.', 'error');
-    }
-
-    if (!data) {
-        return Swal.fire('Data Faltando', 'Selecione o dia e o horário do evento.', 'warning');
-    }
-
-    if (!local) {
-        return Swal.fire('Local Vazio', 'Informe onde o show será realizado.', 'warning');
-    }
-
-    if (!imagemBase64) {
-        return Swal.fire('Sem Imagem', 'É obrigatório carregar uma imagem para o anúncio.', 'info');
-    }
-
-    // 3. Montagem do Payload
     const payload = {
-        nome: nome,
-        preco: preco,
-        quantidade: qtd, // COMPLEMENTO: Adicionado ao payload
-        data: data,
-        local: local,
-        imagemURL: imagemBase64,
-        vendedorId: usuario.id || usuario.Id
+        Nome: nome,
+        Lugar: lugar,            // Novo campo adicionado
+        CapacidadeTotal: qtd,
+        PrecoPadrao: preco,
+        DataEvento: data,
+        ImagemURL: imagemBase64
     };
 
     try {
@@ -263,87 +239,56 @@ async function salvarEvento() {
         if (res.ok) {
             Swal.fire('Sucesso!', 'Show anunciado com sucesso!', 'success');
             fecharModal();
-            
-            // Limpar campos
-            document.getElementById('nome-evento').value = "";
-            document.getElementById('preco-evento').value = "";
-            document.getElementById('qtd-ingressos').value = ""; // COMPLEMENTO: Limpa qtd
-            document.getElementById('data-evento').value = "";
-            document.getElementById('local-evento').value = "";
-            document.getElementById('ev-imagem-base64').value = "";
-            document.getElementById('ev-arquivo').value = "";
-            
+            document.querySelectorAll('#modalEvento input').forEach(i => i.value = "");
             carregarMeusShows(); 
         } else {
             const erroTexto = await res.text();
-            Swal.fire('Erro no Servidor', erroTexto || 'Não foi possível salvar.', 'error');
+            Swal.fire('Erro no Servidor', erroTexto || 'Falha ao salvar.', 'error');
         }
     } catch (err) {
-        Swal.fire('Erro de Conexão', 'Não foi possível falar com o servidor.', 'error');
+        Swal.fire('Erro de Conexão', 'Servidor offline.', 'error');
     }
 }
 
 async function carregarMeusShows() {
-    const id = usuario.id || usuario.Id;
     const container = document.getElementById('container-meus-shows');
-    
     try {
-        const res = await fetch(`/api/eventos/vendedor/${id}`);
-        const meusShows = await res.json();
+        const res = await fetch(`/api/eventos`);
+        const todosEventos = await res.json();
 
-        if (meusShows.length === 0) {
-            container.innerHTML = "<p>Você ainda não anunciou nenhum show.</p>";
+        if (todosEventos.length === 0) {
+            container.innerHTML = "<p>Nenhum show cadastrado.</p>";
             document.getElementById('total-shows').innerText = "0";
             return;
         }
 
-        document.getElementById('total-shows').innerText = meusShows.length;
+        document.getElementById('total-shows').innerText = todosEventos.length;
         container.innerHTML = ""; 
 
-        meusShows.forEach(show => {
-            // 1. Formata a Data e Hora (Ex: 20/04/2026 20:30)
-            const dataHora = new Date(show.data || show.Data).toLocaleString('pt-BR', { 
+        todosEventos.forEach(show => {
+            const dataHora = new Date(show.dataEvento || show.DataEvento).toLocaleString('pt-BR', { 
                 dateStyle: 'short', 
                 timeStyle: 'short' 
             });
 
-            // 2. Monta o card com as novas informações
             container.innerHTML += `
-                <div class="stat-box" style="text-align: left; padding: 15px; border-left: 5px solid var(--secondary);">
+                <div class="stat-box" style="text-align: left; padding: 15px; border-left: 5px solid #ff4d6d; margin-bottom:10px; background:#fff; border-radius:8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                     <img src="${show.imagemURL || show.ImagemURL || 'https://via.placeholder.com/150'}" 
-                         style="width:100%; height:150px; object-fit:cover; border-radius:10px; margin-bottom:10px;">
-                    
+                         style="width:100%; height:120px; object-fit:cover; border-radius:10px; margin-bottom:10px;">
                     <h3 style="margin:0;">${show.nome || show.Nome}</h3>
-                    
-                    <p style="color:var(--secondary); font-weight:bold; margin: 5px 0;">
-                        R$ ${Number(show.preco || show.Preco).toFixed(2)}
-                    </p>
-
-                    <p style="font-size: 0.85rem; margin: 2px 0;">
-                        <i class="fas fa-calendar-alt"></i> ${dataHora}
-                    </p>
-
-                    <p style="font-size: 0.85rem; margin: 2px 0;">
-                        <i class="fas fa-ticket-alt"></i> Estoque: ${show.quantidade || show.Quantidade}
-                    </p>
-
-                    <p style="font-size: 0.85rem; margin: 2px 0; color: #666;">
-                        <i class="fas fa-map-marker-alt"></i> ${show.local || show.Local}
-                    </p>
-                </div>
-            `;
+                    <p style="font-size: 0.85rem; color: #666; margin: 5px 0;">📍 ${show.lugar || show.Lugar || 'Local não informado'}</p>
+                    <p style="color:#ff4d6d; font-weight:bold; margin: 5px 0;">R$ ${Number(show.precoPadrao || show.PrecoPadrao || 0).toFixed(2)}</p>
+                    <p style="font-size: 0.85rem; margin: 2px 0;"><i class="fas fa-calendar-alt"></i> ${dataHora}</p>
+                    <p style="font-size: 0.85rem; margin: 2px 0;"><i class="fas fa-ticket-alt"></i> Ingressos: ${show.capacidadeTotal || show.CapacidadeTotal}</p>
+                </div>`;
         });
-    } catch (err) {
-        console.error("Erro ao carregar:", err);
-        container.innerHTML = "<p>Erro ao conectar com o servidor.</p>";
-    }
+    } catch (err) { console.error("Erro ao carregar:", err); }
 }
 
-// Inicialização
 window.onload = carregarMeusShows;
 
 function sair() {
-    localStorage.removeItem('usuario');
+    localStorage.clear();
     window.location.href = 'index.html';
 }
 
@@ -351,8 +296,8 @@ function verPerfil() {
     Swal.fire({
         title: 'Meu Perfil',
         html: `<div style="text-align: left;">
-                <b>Nome:</b> ${usuario.nome}<br>
-                <b>E-mail:</b> ${usuario.email}<br>
+                <b>Nome:</b> ${usuario.Nome || usuario.nome}<br>
+                <b>E-mail:</b> ${usuario.Email || usuario.email}<br>
                 <b>Cargo:</b> Vendedor
                </div>`,
         icon: 'info'
