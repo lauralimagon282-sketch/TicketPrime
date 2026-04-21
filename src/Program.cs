@@ -14,7 +14,7 @@ app.UseStaticFiles();
 
 string connectionString = "Server=localhost\\SQLEXPRESS;Database=TicketPrime;Trusted_Connection=True;TrustServerCertificate=True;";
 
-// USUÁRIOS & LOGIN
+//USUÁRIOS & LOGIN
 app.MapPost("/api/usuarios", async (Usuario usuario) =>
 {
     if (string.IsNullOrWhiteSpace(usuario.Cpf) || string.IsNullOrWhiteSpace(usuario.Nome))
