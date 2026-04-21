@@ -1,7 +1,6 @@
 USE TicketPrime;
 GO
 
---APAGAR NA ORDEM CORRETA
 IF OBJECT_ID('Reservas', 'U') IS NOT NULL DROP TABLE Reservas;
 IF OBJECT_ID('Eventos', 'U') IS NOT NULL DROP TABLE Eventos;
 IF OBJECT_ID('Usuarios', 'U') IS NOT NULL DROP TABLE Usuarios;
