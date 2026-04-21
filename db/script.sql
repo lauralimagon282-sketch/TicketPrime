@@ -1,68 +1,50 @@
--- SCRIPT DE CRIAÇÃO DO BANCO DE DADOS TICKETPRIME
-
--- 1. Criar o Banco de Dados
-IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'TicketPrime')
-BEGIN
-    CREATE DATABASE TicketPrime;
-END
-GO
-
 USE TicketPrime;
 GO
 
--- 2. Limpar tabelas antigas (para evitar erros ao rodar o script várias vezes)
+-- 1. APAGAR NA ORDEM CORRETA (Primeiro as que têm FK, depois as que são apontadas)
+IF OBJECT_ID('Reservas', 'U') IS NOT NULL DROP TABLE Reservas;
 IF OBJECT_ID('Eventos', 'U') IS NOT NULL DROP TABLE Eventos;
-IF OBJECT_ID('Cupons', 'U') IS NOT NULL DROP TABLE Cupons;
 IF OBJECT_ID('Usuarios', 'U') IS NOT NULL DROP TABLE Usuarios;
+IF OBJECT_ID('Cupons', 'U') IS NOT NULL DROP TABLE Cupons;
 GO
 
--- 2. Limpar tabelas antigas (NA ORDEM CORRETA por causa das chaves estrangeiras)
-IF OBJECT_ID('Reservas', 'U') IS NOT NULL DROP TABLE Reservas; -- Adicione esta linha primeiro!
-IF OBJECT_ID('Eventos', 'U') IS NOT NULL DROP TABLE Eventos;
-IF OBJECT_ID('Cupons', 'U') IS NOT NULL DROP TABLE Cupons;
-IF OBJECT_ID('Usuarios', 'U') IS NOT NULL DROP TABLE Usuarios;
-GO
--- 3. Criar Tabela de Usuários (Admin, Vendedor e Cliente)
+-- 2. TABELA USUARIOS (Nomes exatos: Cpf, Nome, Email)
 CREATE TABLE Usuarios (
-    Id INT PRIMARY KEY IDENTITY,
+    Cpf VARCHAR(14) PRIMARY KEY, -- O PDF pede Cpf como PK
     Nome VARCHAR(100) NOT NULL,
-    CPF VARCHAR(14) UNIQUE NOT NULL,
-    Email VARCHAR(100) UNIQUE NOT NULL,
-    Senha VARCHAR(MAX) NOT NULL,
-    NivelAcesso INT DEFAULT 3 -- 1: Admin, 2: Vendedor, 3: Cliente
+    Email VARCHAR(100) NOT NULL,
+    Senha VARCHAR(MAX) NOT NULL, -- Necessário para o login funcionar
+    NivelAcesso INT DEFAULT 3 -- 0 para usuário comum, 1 para administrador
 );
 
--- 4. Criar Tabela de Cupons
-CREATE TABLE Cupons (
-    Id INT PRIMARY KEY IDENTITY,
-    Codigo VARCHAR(50) UNIQUE NOT NULL,
-    PorcentagemDesconto DECIMAL(5,2) NOT NULL,
-    ValorMinimo DECIMAL(10,2) DEFAULT 0
-);
-
--- 5. Criar Tabela de Eventos (ATUALIZADA COM QUANTIDADE)
+-- 3. TABELA EVENTOS (Nomes exatos: Id, Nome, CapacidadeTotal, DataEvento, PrecoPadrao)
 CREATE TABLE Eventos (
     Id INT PRIMARY KEY IDENTITY,
     Nome VARCHAR(100) NOT NULL,
-    Local VARCHAR(100) NOT NULL,
-    Data DATETIME NOT NULL,
-    Preco DECIMAL(10,2) NOT NULL,
-    Quantidade INT NOT NULL DEFAULT 1, -- ADICIONE ESTA LINHA AQUI
-    ImagemURL VARCHAR(MAX),
-    VendedorId INT FOREIGN KEY REFERENCES Usuarios(Id)
+    Lugar VARCHAR(255) NOT NULL,
+    CapacidadeTotal INT NOT NULL,
+    DataEvento DATETIME NOT NULL,
+    PrecoPadrao DECIMAL(10,2) NOT NULL,
+    ImagemURL VARCHAR(MAX) NULL -- ADICIONE ESTA LINHA
 );
--- 7. Criar Tabela de Reservas (OBRIGATÓRIA PARA AV1)
+
+-- 4. TABELA CUPONS (Nomes exatos: codigo, PorcentagemDesconto, valorMinimoregra)
+CREATE TABLE Cupons (
+    codigo VARCHAR(50) PRIMARY KEY,
+    PorcentagemDesconto DECIMAL(5,2) NOT NULL,
+    valorMinimoregra DECIMAL(10,2) NOT NULL
+);
+
+-- 5. TABELA RESERVAS (A principal da AV2, mas obrigatória no script da AV1)
 CREATE TABLE Reservas (
     Id INT PRIMARY KEY IDENTITY,
-    UsuarioId INT NOT NULL FOREIGN KEY REFERENCES Usuarios(Id),
+    UsuarioCpf VARCHAR(14) NOT NULL FOREIGN KEY REFERENCES Usuarios(Cpf),
     EventoId INT NOT NULL FOREIGN KEY REFERENCES Eventos(Id),
-    DataReserva DATETIME DEFAULT GETDATE(),
-    QuantidadeReservada INT NOT NULL,
-    ValorTotal DECIMAL(10,2) NOT NULL
+    CupomUtilizado VARCHAR(50) NULL FOREIGN KEY REFERENCES Cupons(codigo),
+    ValorFinalPago DECIMAL(10,2) NOT NULL
 );
 GO
-
--- 6. Inserir o Administrador Padrão (Login que você vai usar)
+ALTER TABLE Reservas ADD CupomAplicado VARCHAR(50) NULL;
 INSERT INTO Usuarios (Nome, CPF, Email, Senha, NivelAcesso)
 VALUES ('Administrador Master', '000.000.000-00', 'admin@prime.com', '123456', 1);
 GO
