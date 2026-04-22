@@ -5,7 +5,7 @@ Laura de Lima - 06010735
 Carlos Eduardo Mendes - 06011992
 Caio de Paiva Barragat - 060
 Arthur Martins - 060
-Emanuel de Oliveira - 060
+Emanuel de Oliveira - 06010524
 
 Este é o backend do sistema TicketPrime, desenvolvido como uma Minimal API em .NET utilizando Dapper para persistência de dados.
 
