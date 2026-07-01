@@ -3,8 +3,8 @@
 Alunos:
 Laura de Lima - 06010735
 Carlos Eduardo Mendes - 06011992
-Caio de Paiva Barragat - 060
-Arthur Martins - 060
+Caio de Paiva Barragat - 06012117
+Arthur Martins - 06012635
 Emanuel de Oliveira - 06010524
 
 Este é o backend do sistema TicketPrime, desenvolvido como uma Minimal API em .NET utilizando Dapper para persistência de dados.
