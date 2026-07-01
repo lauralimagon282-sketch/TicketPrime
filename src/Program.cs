@@ -12,8 +12,7 @@ app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-string connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-                          ?? throw new InvalidOperationException("A string de conexão 'DefaultConnection' não foi encontrada.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 //USUÁRIOS & LOGIN
 app.MapPost("/api/usuarios", async (Usuario usuario) =>
