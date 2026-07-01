@@ -11,7 +11,8 @@ Este é o backend do sistema TicketPrime, desenvolvido como uma Minimal API em .
 
 ## Como Executar o Projeto
 
-*Necessário MICROSOFT SQL SERVER MANAGEMENT STUDIO* 
+(*Necessário MICROSOFT SQL SERVER MANAGEMENT STUDIO*) 
+
 Para compilar e rodar a API, certifique-se de ter o SDK do .NET instalado, navegue até a pasta do código-fonte e execute:
 
 ```bash
