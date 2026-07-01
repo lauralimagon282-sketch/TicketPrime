@@ -12,7 +12,8 @@ app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-string connectionString = "Server=localhost\\SQLEXPRESS;Database=TicketPrime;Trusted_Connection=True;TrustServerCertificate=True;";
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+                          ?? throw new InvalidOperationException("A string de conexão 'DefaultConnection' não foi encontrada.");
 
 //USUÁRIOS & LOGIN
 app.MapPost("/api/usuarios", async (Usuario usuario) =>
