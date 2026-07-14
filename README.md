@@ -1,8 +1,8 @@
 # TicketPrime - Motor de Vendas de Ingressos
 
 Alunos:
-Laura de Lima - 06010735
-Carlos Eduardo Mendes - 06011992
+Laura de Lima Gonçalves- 06010735
+Carlos Eduardo Mendes Quintella- 06011992
 Caio de Paiva Barragat - 06012117
 Arthur Martins - 06012635
 Emanuel de Oliveira - 06010524
